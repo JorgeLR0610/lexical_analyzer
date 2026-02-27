@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador léxico</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-color: #f8fafc;
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --header-bg: rgba(15, 23, 42, 0.8);
+            --error-color: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.1);
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        main {
+            width: 100%;
+            max-width: 900px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 700;
+            margin: 0;
+            font-size: 2.5rem;
+            background: -webkit-linear-gradient(45deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+            margin-bottom: 0;
+        }
+
+        .glass-panel {
+            background: var(--container-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            color: #f8fafc;
+            font-family: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        textarea::placeholder {
+            color: #64748b;
+        }
+
+        button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 0;
+            /* Remove padding for flush table */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background: var(--header-bg);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        th,
+        td {
+            padding: 1rem 1.5rem;
+        }
+
+        th {
+            font-weight: 600;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            font-family: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .token-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(96, 165, 250, 0.15);
+            color: #93c5fd;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Error section */
+        #error-container {
+            display: none;
+            background-color: var(--error-bg);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .loading {
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        .loading .spinner {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #results-section {
+            display: none;
+            animation: slideIn 0.4s ease-out forwards;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <main>
+        <div>
+            <h1>Analizador léxico</h1>
+            <p class="subtitle">Inserta el código a analizar en el área de texto</p>
+        </div>
+
+        <div class="glass-panel">
+            <textarea id="code-input" placeholder="Escribe tu código aquí (ej: if a <= 5 then b = a)"></textarea>
+            <button id="analyze-btn" onclick="analyzeCode()">
+                <div class="spinner"></div>
+                <span id="btn-text">Analizar bloque de código</span>
+            </button>
+        </div>
+
+        <div id="error-container"></div>
+
+        <div id="results-section" class="glass-panel table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Lexema</th>
+                        <th>Nombre del token</th>
+                        <th>Valor del atributo</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body">
+                    <!-- Results will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        async function analyzeCode() {
+            const codeInput = document.getElementById('code-input').value;
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const resultsBody = document.getElementById('results-body');
+            const errorContainer = document.getElementById('error-container');
+            const resultsSection = document.getElementById('results-section');
+
+            if (!codeInput.trim()) {
+                showError("El bloque de código no puede estar vacío; por favor inserta un bloque de código para analizar.");
+                return;
+            }
+
+            analyzeBtn.classList.add('loading');
+            document.getElementById('btn-text').textContent = 'Procesando...';
+            errorContainer.style.display = 'none';
+            resultsBody.innerHTML = '';
+            resultsSection.style.display = 'none';
+
+            try {
+                const response = await fetch('/tokenize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: codeInput })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Error al comunicarse con el servidor");
+                }
+
+                const data = await response.json();
+
+                if (data.errors && data.errors.length > 0) {
+                    showError("<b>Errores léxicos encontrados:</b><br>" + data.errors.map(escapeHtml).join('<br>'));
+                }
+
+                if (data.tokens && data.tokens.length > 0) {
+                    data.tokens.forEach(token => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${escapeHtml(token.lexeme)}</td>
+                            <td><span class="token-badge">${escapeHtml(token.token_name)}</span></td>
+                            <td>${escapeHtml(token.attribute_value)}</td>
+                        `;
+                        resultsBody.appendChild(row);
+                    });
+                    resultsSection.style.display = 'block';
+                } else if (!data.errors || data.errors.length === 0) {
+                    showError("No se encontraron tokens válidos en el código.");
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                analyzeBtn.classList.remove('loading');
+                document.getElementById('btn-text').textContent = 'Analizar Código';
+            }
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = message;
+            errorContainer.style.display = 'block';
+        }
+
+        function escapeHtml(unsafe) {
+            return (unsafe || '').toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+
+</html>
