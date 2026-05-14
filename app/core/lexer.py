@@ -3,9 +3,7 @@ from api.schemas import TokenResponse, LexerResponse
 
 class MyLexer(Lexer):
     tokens = { ID, NUMERO, IF, THEN, ELSE, OPREL }  # type: ignore
-    
-    literals = { '(', ')', '{', '}', ';' }
-    
+        
     ignore = ' \t\n' 
 
     @_(r'<=')
@@ -48,7 +46,7 @@ class MyLexer(Lexer):
     
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
     
-    # Las palabras reservadas serian excepciones en los ids
+    # Las palabras reservadas serian excepciones en los identificadores
     ID['if'] = IF
     ID['then'] = THEN
     ID['else'] = ELSE
@@ -78,7 +76,6 @@ def analyze_code(code: str) -> LexerResponse:
     tokens_list = list()
     
     for token in lexer.tokenize(code):
-        token_name = token.type.lower()
         
         # Obtener lexema original para oprel y establecer los de los otros
         if token.type == "OPREL":
@@ -87,12 +84,12 @@ def analyze_code(code: str) -> LexerResponse:
             original_lexeme = str(token.value)
         
         # Establecer el valor del atributo        
-        if token.type in ["ID", "NUMERO", "OPREL"]: # De momento la cadena que hizo match, no c
+        if token.type in ["ID", "NUMERO", "OPREL"]: 
             attribute_value = str(token.value)
         else:
             attribute_value = "-"
 
-        # Hacer la lista chida
+        # Hacer la lista acorde al schema
         
         tokens_obj = TokenResponse(
             lexeme=original_lexeme,
