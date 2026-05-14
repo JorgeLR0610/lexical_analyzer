@@ -1,11 +1,19 @@
+import logging
 from sly import Parser
 from core.lexer import MyLexer
 from api.schemas import ParseResponse
+
+# Suprimir warnings de SLY sobre shift/reduce conflicts inevitables por falta de llaves/indentación explícita
+log = logging.getLogger('sly')
+log.setLevel(logging.ERROR)
 
 class MyParser(Parser):
     tokens = MyLexer.tokens
     
     precedence = (
+        ('left', 'OR'),
+        ('left', 'AND'),
+        ('right', 'NOT'),
         ('left', 'OPREL'),
         ('left', '+', '-'),
         ('left', '*', '/'),
@@ -28,7 +36,7 @@ class MyParser(Parser):
     def statements(self, p):
         return [p.statement]
         
-    @_('assignment', 'expr', 'if_statement', 'while_statement', 'function_def', 'return_statement')
+    @_('assignment', 'expr', 'if_statement', 'while_statement', 'for_statement', 'function_def', 'return_statement')
     def statement(self, p):
         return p[0]
         
@@ -46,6 +54,15 @@ class MyParser(Parser):
     @_('expr OPREL expr')
     def expr(self, p):
         return ('oprel', p.OPREL, p.expr0, p.expr1)
+
+    @_('expr AND expr',
+       'expr OR expr')
+    def expr(self, p):
+        return ('boolop', p[1], p.expr0, p.expr1)
+
+    @_('NOT expr')
+    def expr(self, p):
+        return ('not', p.expr)
 
     @_('"(" expr ")"')
     def expr(self, p):
@@ -75,17 +92,29 @@ class MyParser(Parser):
     def empty(self, p):
         pass
 
-    @_('IF expr ":" statements ELSE ":" statements')
+    @_('IF expr ":" statements elif_list ELSE ":" statements')
     def if_statement(self, p):
-        return ('if_else', p.expr, p.statements0, p.statements1)
+        return ('if_elif_else', p.expr, p.statements0, p.elif_list, p.statements1)
 
-    @_('IF expr ":" statements')
+    @_('IF expr ":" statements elif_list')
     def if_statement(self, p):
-        return ('if', p.expr, p.statements)
+        return ('if_elif', p.expr, p.statements, p.elif_list)
         
+    @_('ELIF expr ":" statements elif_list')
+    def elif_list(self, p):
+        return [('elif', p.expr, p.statements)] + p.elif_list
+        
+    @_('empty')
+    def elif_list(self, p):
+        return []
+
     @_('WHILE expr ":" statements')
     def while_statement(self, p):
         return ('while', p.expr, p.statements)
+
+    @_('FOR ID IN expr ":" statements')
+    def for_statement(self, p):
+        return ('for', p.ID, p.expr, p.statements)
 
     @_('DEF ID "(" args_def ")" ":" statements')
     def function_def(self, p):
@@ -121,8 +150,6 @@ def analyze_syntax(code: str) -> ParseResponse:
     lexer = MyLexer()
     parser = MyParser()
     
-    # Evaluar tokens para ver si hay errores léxicos primero
-    # El generador se agota al evaluarlo, por lo que tenemos que tokenizar nuevamente o hacerlo todo a la vez
     tokens = list(lexer.tokenize(code))
     
     if lexer.errores_lexicos:
@@ -134,7 +161,6 @@ def analyze_syntax(code: str) -> ParseResponse:
         )
         
     try:
-        # Usar el generador fresco
         parser.parse(lexer.tokenize(code))
     except Exception as e:
         if not parser.error_msg:
