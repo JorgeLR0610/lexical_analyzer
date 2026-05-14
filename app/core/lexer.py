@@ -2,20 +2,32 @@ from sly import Lexer
 from api.schemas import TokenResponse, LexerResponse
 
 class MyLexer(Lexer):
-    tokens = { ID, NUMERO, IF, THEN, ELSE, OPREL }  # type: ignore
+    tokens = { ID, NUMERO, IF, ELSE, ELIF, WHILE, FOR, IN, DEF, RETURN, AND, OR, NOT, TRUE, FALSE, OPREL } # type: ignore
+    
+    literals = { '(', ')', '{', '}', '[', ']', '+', '-', '*', '/', '=', ':', ',', '.' }
         
-    ignore = ' \t\n' 
+    ignore = ' \t' 
+
+    @_(r'\n+')
+    def ignore_newline(self, t):
+        self.lineno += t.value.count('\n')
+
+    @_(r'==')
+    def EQ(self, t):
+        t.type = "OPREL"
+        t.value = "EQ"
+        return t
+
+    @_(r'!=|<>')
+    def NE(self, t):
+        t.type = "OPREL"
+        t.value = "NE"
+        return t
 
     @_(r'<=')
     def LE(self, t):
         t.type = "OPREL"
         t.value = "LE"
-        return t
-
-    @_(r'<>')
-    def NE(self, t):
-        t.type = "OPREL"
-        t.value = "NE"
         return t
 
     @_(r'>=')
@@ -30,12 +42,6 @@ class MyLexer(Lexer):
         t.value = "LT"
         return t
 
-    @_(r'=')
-    def EQ(self, t):
-        t.type = "OPREL"
-        t.value = "EQ"
-        return t
-
     @_(r'>')
     def GT(self, t):
         t.type = "OPREL"
@@ -46,10 +52,19 @@ class MyLexer(Lexer):
     
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
     
-    # Las palabras reservadas serian excepciones en los identificadores
     ID['if'] = IF
-    ID['then'] = THEN
     ID['else'] = ELSE
+    ID['elif'] = ELIF
+    ID['while'] = WHILE
+    ID['for'] = FOR
+    ID['in'] = IN
+    ID['def'] = DEF
+    ID['return'] = RETURN
+    ID['and'] = AND
+    ID['or'] = OR
+    ID['not'] = NOT
+    ID['True'] = TRUE
+    ID['False'] = FALSE
 
     ignore_comment = r'\#.*'
 
@@ -58,17 +73,17 @@ class MyLexer(Lexer):
 
     def error(self, t):
         self.errores_lexicos.append(
-            f"Carácter no válido '{t.value[0]}' en la posición {t.index}"
+            f"Carácter no válido '{t.value[0]}' en la línea {self.lineno}, posición {t.index}"
         )
         self.index += 1
         
 OPREL_MAP = { 
-"LE": "<=",
-"LT": "<",
-"EQ": "=",
-"NE": "<>",
-"GE": ">=",
-"GT": ">"
+    "LE": "<=",
+    "LT": "<",
+    "EQ": "==",
+    "NE": "!=",
+    "GE": ">=",
+    "GT": ">"
 }
         
 def analyze_code(code: str) -> LexerResponse:
@@ -76,8 +91,6 @@ def analyze_code(code: str) -> LexerResponse:
     tokens_list = list()
     
     for token in lexer.tokenize(code):
-        
-        # Obtener lexema original para oprel y establecer los de los otros
         if token.type == "OPREL":
             original_lexeme = OPREL_MAP[token.value]
         else:
@@ -86,14 +99,14 @@ def analyze_code(code: str) -> LexerResponse:
         # Establecer el valor del atributo        
         if token.type in ["ID", "NUMERO", "OPREL"]: 
             attribute_value = str(token.value)
+        elif token.type in lexer.literals:
+            attribute_value = str(token.value)
         else:
             attribute_value = "-"
 
-        # Hacer la lista acorde al schema
-        
         tokens_obj = TokenResponse(
             lexeme=original_lexeme,
-            token_name=token.type.lower(),
+            token_name=token.type.lower() if hasattr(token, 'type') else str(token.type),
             attribute_value=attribute_value
         )
         tokens_list.append(tokens_obj)

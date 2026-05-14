@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador léxico</title>
+    <title>Analizador léxico y sintáctico</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -13,12 +12,14 @@
             --text-color: #f8fafc;
             --primary-color: #3b82f6;
             --primary-hover: #2563eb;
+            --secondary-color: #10b981;
+            --secondary-hover: #059669;
             --header-bg: rgba(15, 23, 42, 0.8);
             --error-color: #ef4444;
             --error-bg: rgba(239, 68, 68, 0.1);
+            --success-bg: rgba(16, 185, 129, 0.1);
             --font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
-
         body {
             margin: 0;
             padding: 0;
@@ -30,7 +31,6 @@
             flex-direction: column;
             align-items: center;
         }
-
         main {
             width: 100%;
             max-width: 900px;
@@ -41,7 +41,6 @@
             flex-direction: column;
             gap: 2rem;
         }
-
         h1 {
             text-align: center;
             font-weight: 700;
@@ -52,14 +51,12 @@
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.025em;
         }
-
         p.subtitle {
             text-align: center;
             color: #94a3b8;
             margin-top: 0.25rem;
             margin-bottom: 0;
         }
-
         .glass-panel {
             background: var(--container-bg);
             backdrop-filter: blur(16px);
@@ -70,11 +67,9 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
         .glass-panel:hover {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 20px 25px -5px rgba(0, 0, 0, 0.15);
         }
-
         textarea {
             width: 100%;
             height: 200px;
@@ -90,24 +85,25 @@
             box-sizing: border-box;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
-
         textarea:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
         }
-
         textarea::placeholder {
             color: #64748b;
         }
-
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
         button {
             display: flex;
+            flex: 1;
             justify-content: center;
             align-items: center;
-            width: 100%;
             padding: 1rem;
-            margin-top: 1.5rem;
             background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
             color: white;
             border: none;
@@ -119,41 +115,40 @@
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
             box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
         }
-
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
         }
-
         button:active {
             transform: translateY(0);
         }
-
-        /*estilos de tabla */
+        button.secondary-btn {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #047857 100%);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
+        }
+        button.secondary-btn:hover {
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.5);
+        }
+        
+        /* Table Styles */
         .table-container {
             overflow-x: auto;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             padding: 0;
-        
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
             text-align: left;
         }
-
         thead {
             background: var(--header-bg);
             border-bottom: 2px solid var(--border-color);
         }
-
-        th,
-        td {
+        th, td {
             padding: 1rem 1.5rem;
         }
-
         th {
             font-weight: 600;
             color: #cbd5e1;
@@ -161,26 +156,22 @@
             font-size: 0.85rem;
             letter-spacing: 0.05em;
         }
-
         td {
             font-family: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
             font-size: 0.95rem;
             color: #e2e8f0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         tbody tr {
             transition: background-color 0.2s ease;
         }
-
         tbody tr:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
-
         tbody tr:last-child td {
             border-bottom: none;
         }
-
+        
         .token-badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -191,7 +182,6 @@
             font-weight: 600;
         }
 
-        /* sección de errores */
         #error-container {
             display: none;
             background-color: var(--error-bg);
@@ -204,44 +194,98 @@
             animation: slideIn 0.3s ease-out forwards;
         }
 
+        #parse-result-container {
+            display: none;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .error-card {
+            background-color: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .error-card h3 {
+            color: #fca5a5;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-card {
+            background-color: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .success-card h3 {
+            color: #6ee7b7;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .code-snippet {
+            display: flex;
+            background: #0f172a;
+            border-radius: 8px;
+            margin-top: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .line-number {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: #64748b;
+            font-family: 'Fira Code', monospace;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            user-select: none;
+        }
+
+        .code-line {
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            color: #f8fafc;
+            white-space: pre-wrap;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .error-highlight {
+            background-color: rgba(239, 68, 68, 0.3);
+            border-bottom: 2px solid #ef4444;
+            color: #fff;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
         .loading {
             opacity: 0.8;
             pointer-events: none;
         }
-
         .spinner {
             display: none;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
             margin-right: 10px;
         }
-
         .loading .spinner {
             display: inline-block;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
-
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
+        
         #results-section {
             display: none;
             animation: slideIn 0.4s ease-out forwards;
@@ -250,23 +294,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
-
 <body>
     <main>
         <div>
-            <h1>Analizador léxico</h1>
-            <p class="subtitle">Inserta el código a analizar en el área de texto</p>
+            <h1>Analizador léxico y sintáctico</h1>
+            <p class="subtitle">Inserta el código de Python a analizar</p>
         </div>
-
+        
         <div class="glass-panel">
-            <textarea id="code-input" placeholder="Escribe tu código aquí (ej: if a <= 5 then b = a)"></textarea>
-            <button id="analyze-btn" onclick="analyzeCode()">
-                <div class="spinner"></div>
-                <span id="btn-text">Analizar bloque de código</span>
-            </button>
+            <textarea id="code-input" placeholder="Escribe tu código aquí (ej: def suma(a, b): return a + b)"></textarea>
+            <div class="button-group">
+                <button id="analyze-btn" onclick="analyzeCode()">
+                    <div class="spinner"></div>
+                    <span id="btn-text">Análisis léxico</span>
+                </button>
+                <button id="parse-btn" class="secondary-btn" onclick="analyzeSyntax()">
+                    <div class="spinner" id="parse-spinner"></div>
+                    <span id="parse-btn-text">Análisis sintáctico</span>
+                </button>
+            </div>
         </div>
-
+        
         <div id="error-container"></div>
+        <div id="parse-result-container"></div>
 
         <div id="results-section" class="glass-panel table-container">
             <table>
@@ -278,37 +328,37 @@
                     </tr>
                 </thead>
                 <tbody id="results-body">
-                    <!-- Tabla de resultados-->
+                    <!-- Results will be injected here -->
                 </tbody>
             </table>
         </div>
     </main>
 
     <script>
+        function hideAllResults() {
+            document.getElementById('error-container').style.display = 'none';
+            document.getElementById('results-section').style.display = 'none';
+            document.getElementById('parse-result-container').style.display = 'none';
+            document.getElementById('results-body').innerHTML = '';
+        }
+
         async function analyzeCode() {
             const codeInput = document.getElementById('code-input').value;
             const analyzeBtn = document.getElementById('analyze-btn');
-            const resultsBody = document.getElementById('results-body');
-            const errorContainer = document.getElementById('error-container');
-            const resultsSection = document.getElementById('results-section');
-
+            
             if (!codeInput.trim()) {
-                showError("El bloque de código no puede estar vacío; por favor inserta un bloque de código para analizar.");
+                showError("El bloque de código no puede estar vacío.");
                 return;
             }
 
+            hideAllResults();
             analyzeBtn.classList.add('loading');
             document.getElementById('btn-text').textContent = 'Procesando...';
-            errorContainer.style.display = 'none';
-            resultsBody.innerHTML = '';
-            resultsSection.style.display = 'none';
 
             try {
                 const response = await fetch('/tokenize', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code: codeInput })
                 });
 
@@ -318,12 +368,13 @@
                 }
 
                 const data = await response.json();
-
+                
                 if (data.errors && data.errors.length > 0) {
                     showError("<b>Errores léxicos encontrados:</b><br>" + data.errors.map(escapeHtml).join('<br>'));
                 }
 
                 if (data.tokens && data.tokens.length > 0) {
+                    const resultsBody = document.getElementById('results-body');
                     data.tokens.forEach(token => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
@@ -333,7 +384,7 @@
                         `;
                         resultsBody.appendChild(row);
                     });
-                    resultsSection.style.display = 'block';
+                    document.getElementById('results-section').style.display = 'block';
                 } else if (!data.errors || data.errors.length === 0) {
                     showError("No se encontraron tokens válidos en el código.");
                 }
@@ -341,25 +392,110 @@
                 showError(error.message);
             } finally {
                 analyzeBtn.classList.remove('loading');
-                document.getElementById('btn-text').textContent = 'Analizar Código';
+                document.getElementById('btn-text').textContent = 'Análisis léxico';
+            }
+        }
+
+        async function analyzeSyntax() {
+            const codeInput = document.getElementById('code-input').value;
+            const parseBtn = document.getElementById('parse-btn');
+            
+            if (!codeInput.trim()) {
+                showError("El bloque de código no puede estar vacío.");
+                return;
+            }
+
+            hideAllResults();
+            parseBtn.classList.add('loading');
+            document.getElementById('parse-btn-text').textContent = 'Analizando...';
+
+            try {
+                const response = await fetch('/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Error al comunicarse con el servidor");
+                }
+
+                const data = await response.json();
+                displaySyntaxResult(data, codeInput);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                parseBtn.classList.remove('loading');
+                document.getElementById('parse-btn-text').textContent = 'Análisis sintáctico';
+            }
+        }
+
+        function displaySyntaxResult(data, originalCode) {
+            const container = document.getElementById('parse-result-container');
+            container.style.display = 'block';
+            
+            if (data.success) {
+                container.innerHTML = `
+                    <div class="success-card">
+                        <h3>Sintaxis Correcta</h3>
+                        <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
+                    </div>
+                `;
+            } else {
+                let codeSnippetHtml = '';
+                if (data.error_line !== null && data.error_index !== null) {
+                    const lines = originalCode.split('\\n');
+                    const errLineText = lines[data.error_line - 1] || '';
+                    
+                    let absIndex = data.error_index;
+                    let currentIdx = 0;
+                    let col = 0;
+                    for (let i = 0; i < lines.length; i++) {
+                        if (currentIdx + lines[i].length >= absIndex) {
+                            col = absIndex - currentIdx;
+                            break;
+                        }
+                        currentIdx += lines[i].length + 1; // +1 for \n
+                    }
+                    
+                    const before = errLineText.substring(0, col);
+                    const errChar = errLineText.substring(col, col+1) || ' ';
+                    const after = errLineText.substring(col+1);
+                    
+                    codeSnippetHtml = `
+                        <div class="code-snippet">
+                            <div class="line-number">${data.error_line}</div>
+                            <div class="code-line">${escapeHtml(before)}<mark class="error-highlight">${escapeHtml(errChar)}</mark>${escapeHtml(after)}</div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <div class="error-card">
+                        <h3>Error de Sintaxis</h3>
+                        <p style="margin:0; color:#cbd5e1;">${escapeHtml(data.error_message)}</p>
+                        ${codeSnippetHtml}
+                    </div>
+                `;
             }
         }
 
         function showError(message) {
-            const errorContainer = document.getElementById('error-container');
-            errorContainer.innerHTML = message;
-            errorContainer.style.display = 'block';
+             const errorContainer = document.getElementById('error-container');
+             errorContainer.innerHTML = message;
+             errorContainer.style.display = 'block';
         }
 
         function escapeHtml(unsafe) {
             return (unsafe || '').toString()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
         }
     </script>
 </body>
-
 </html>
