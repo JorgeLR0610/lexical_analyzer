@@ -3,277 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador léxico y sintáctico</title>
+    <title>Analizador Léxico y Sintáctico para Go</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --container-bg: rgba(30, 41, 59, 0.7);
+            --bg-color: #0b0f19;
+            --container-bg: rgba(22, 30, 49, 0.75);
             --border-color: rgba(255, 255, 255, 0.1);
             --text-color: #f8fafc;
-            --primary-color: #3b82f6;
-            --primary-hover: #2563eb;
+            --text-muted: #94a3b8;
+            --primary-color: #00add8;
+            --primary-hover: #0098bd;
+            --primary-glow: rgba(0, 173, 216, 0.3);
             --secondary-color: #10b981;
             --secondary-hover: #059669;
-            --header-bg: rgba(15, 23, 42, 0.8);
             --error-color: #ef4444;
-            --error-bg: rgba(239, 68, 68, 0.1);
-            --success-bg: rgba(16, 185, 129, 0.1);
+            --error-bg: rgba(239, 68, 68, 0.12);
+            --error-border: rgba(239, 68, 68, 0.35);
+            --success-color: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.12);
+            --success-border: rgba(16, 185, 129, 0.35);
             --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            --mono-font: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
             font-family: var(--font-family);
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b0f19 75%);
             color: var(--text-color);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
+
         main {
             width: 100%;
-            max-width: 900px;
-            padding: 2rem;
-            margin-top: 2rem;
-            box-sizing: border-box;
+            max-width: 960px;
+            padding: 3rem 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 2rem;
+            gap: 1.75rem;
         }
+
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         h1 {
-            text-align: center;
-            font-weight: 700;
+            font-weight: 800;
             margin: 0;
-            font-size: 2.5rem;
-            background: -webkit-linear-gradient(45deg, #60a5fa, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.025em;
+            font-size: 2.4rem;
+            letter-spacing: -0.03em;
+            color: #ffffff;
         }
+
         p.subtitle {
-            text-align: center;
-            color: #94a3b8;
-            margin-top: 0.25rem;
-            margin-bottom: 0;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            margin: 0;
+            max-width: 620px;
+            line-height: 1.5;
         }
+
         .glass-panel {
             background: var(--container-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            padding: 1.75rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            transition: border-color 0.3s ease;
         }
-        .glass-panel:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+
+        .editor-wrapper {
+            position: relative;
         }
+
         textarea {
             width: 100%;
-            height: 200px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border-color);
+            height: 240px;
+            background: #090d16;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 12px;
             padding: 1.25rem;
-            color: #f8fafc;
-            font-family: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
-            font-size: 1rem;
-            line-height: 1.5;
+            color: #f1f5f9;
+            font-family: var(--mono-font);
+            font-size: 0.95rem;
+            line-height: 1.6;
             resize: vertical;
             box-sizing: border-box;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            tab-size: 4;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
+
         textarea:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 3px var(--primary-glow);
         }
+
         textarea::placeholder {
-            color: #64748b;
+            color: #475569;
         }
+
         .button-group {
             display: flex;
             gap: 1rem;
-            margin-top: 1.5rem;
+            margin-top: 1.25rem;
         }
+
         button {
-            display: flex;
+            display: inline-flex;
             flex: 1;
             justify-content: center;
             align-items: center;
-            padding: 1rem;
-            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%);
-            color: white;
+            gap: 0.5rem;
+            padding: 0.9rem 1.25rem;
+            background: var(--primary-color);
+            color: #0b0f19;
             border: none;
             border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            letter-spacing: 0.025em;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
             cursor: pointer;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 173, 216, 0.3);
         }
+
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 173, 216, 0.45);
         }
+
         button:active {
             transform: translateY(0);
         }
+
         button.secondary-btn {
-            background: linear-gradient(135deg, var(--secondary-color) 0%, #047857 100%);
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
+            background: #10b981;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
+
         button.secondary-btn:hover {
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.5);
+            background: #059669;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
         }
-        
-        /* Table Styles */
-        .table-container {
-            overflow-x: auto;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            padding: 0;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-        thead {
-            background: var(--header-bg);
-            border-bottom: 2px solid var(--border-color);
-        }
-        th, td {
-            padding: 1rem 1.5rem;
-        }
-        th {
-            font-weight: 600;
+
+        button.outline-btn {
+            background: transparent;
             color: #cbd5e1;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 0.05em;
-        }
-        td {
-            font-family: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
-            font-size: 0.95rem;
-            color: #e2e8f0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        tbody tr {
-            transition: background-color 0.2s ease;
-        }
-        tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .token-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            background: rgba(96, 165, 250, 0.15);
-            color: #93c5fd;
-            font-size: 0.85rem;
-            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            flex: 0 0 auto;
+            box-shadow: none;
         }
 
-        #error-container {
-            display: none;
-            background-color: var(--error-bg);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            animation: slideIn 0.3s ease-out forwards;
+        button.outline-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #ffffff;
         }
 
-        #parse-result-container {
-            display: none;
-            animation: slideIn 0.3s ease-out forwards;
-        }
-
-        .error-card {
-            background-color: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-
-        .error-card h3 {
-            color: #fca5a5;
-            margin-top: 0;
-            margin-bottom: 0.5rem;
-        }
-
-        .success-card {
-            background-color: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(16, 185, 129, 0.5);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-
-        .success-card h3 {
-            color: #6ee7b7;
-            margin-top: 0;
-            margin-bottom: 0.5rem;
-        }
-
-        .code-snippet {
-            display: flex;
-            background: #0f172a;
-            border-radius: 8px;
-            margin-top: 1rem;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .line-number {
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            color: #64748b;
-            font-family: 'Fira Code', monospace;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-            user-select: none;
-        }
-
-        .code-line {
-            padding: 1rem;
-            font-family: 'Fira Code', monospace;
-            color: #f8fafc;
-            white-space: pre-wrap;
-            word-break: break-all;
-            flex: 1;
-        }
-
-        .error-highlight {
-            background-color: rgba(239, 68, 68, 0.3);
-            border-bottom: 2px solid #ef4444;
-            color: #fff;
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-
-        .loading {
-            opacity: 0.8;
-            pointer-events: none;
-        }
         .spinner {
             display: none;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
             border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
+            border-top-color: currentColor;
+            animation: spin 0.8s linear infinite;
         }
+
         .loading .spinner {
             display: inline-block;
         }
@@ -281,65 +197,306 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
+        /* Result Containers */
+        #error-container {
+            display: none;
+            background-color: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: #fca5a5;
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        #parse-result-container {
+            display: none;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .error-card {
+            background-color: rgba(239, 68, 68, 0.08);
+            border: 1px solid var(--error-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .error-card h3 {
+            color: #f87171;
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.15rem;
+        }
+
+        .success-card {
+            background-color: rgba(16, 185, 129, 0.08);
+            border: 1px solid var(--success-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .success-card h3 {
+            color: #34d399;
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.15rem;
+        }
+
+        .code-snippet {
+            display: flex;
+            background: #090d16;
+            border-radius: 8px;
+            margin-top: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .line-number {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: #64748b;
+            font-family: var(--mono-font);
+            font-size: 0.9rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            user-select: none;
+        }
+
+        .code-line {
+            padding: 0.75rem 1rem;
+            font-family: var(--mono-font);
+            font-size: 0.9rem;
+            color: #f8fafc;
+            white-space: pre-wrap;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .error-highlight {
+            background-color: rgba(239, 68, 68, 0.4);
+            border-bottom: 2px solid #ef4444;
+            color: #fff;
+            padding: 0 3px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        /* Token Table */
         #results-section {
             display: none;
-            animation: slideIn 0.4s ease-out forwards;
+            animation: fadeIn 0.4s ease-out forwards;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .table-header-bar {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #ffffff;
+        }
+
+        .token-count-badge {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 480px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background: rgba(11, 15, 25, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 0.85rem 1.5rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 0.85rem 1.5rem;
+            font-family: var(--mono-font);
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Categorías de insignias de tokens */
+        .token-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: var(--mono-font);
+        }
+
+        .badge-keyword {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .badge-type {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-id {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .badge-literal {
+            background: rgba(45, 212, 191, 0.15);
+            color: #2dd4bf;
+            border: 1px solid rgba(45, 212, 191, 0.3);
+        }
+
+        .badge-opar {
+            background: rgba(244, 114, 182, 0.15);
+            color: #f472b6;
+            border: 1px solid rgba(244, 114, 182, 0.3);
+        }
+
+        .badge-oprel {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+
+        .badge-operator {
+            background: rgba(129, 140, 248, 0.15);
+            color: #818cf8;
+            border: 1px solid rgba(129, 140, 248, 0.3);
+        }
+
+        .badge-delimiter {
+            background: rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.3);
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
     <main>
-        <div>
-            <h1>Analizador léxico y sintáctico</h1>
-            <p class="subtitle">Inserta el código de Python a analizar</p>
+        <div class="header">
+            <h1>Analizador Léxico y Sintáctico</h1>
+            <p class="subtitle">Analizador léxico y sintáctico para un subconjunto de Go</p>
         </div>
-        
+
         <div class="glass-panel">
-            <textarea id="code-input" placeholder="Escribe tu código aquí (ej: def suma(a, b): return a + b)"></textarea>
+            <div class="editor-wrapper">
+                <textarea id="code-input" placeholder="Escribe o pega código de Go aquí..." spellcheck="false"></textarea>
+            </div>
+
             <div class="button-group">
                 <button id="analyze-btn" onclick="analyzeCode()">
-                    <div class="spinner"></div>
-                    <span id="btn-text">Análisis léxico</span>
+                    <div class="spinner" id="lex-spinner"></div>
+                    <span id="btn-text">Análisis Léxico</span>
                 </button>
                 <button id="parse-btn" class="secondary-btn" onclick="analyzeSyntax()">
                     <div class="spinner" id="parse-spinner"></div>
-                    <span id="parse-btn-text">Análisis sintáctico</span>
+                    <span id="parse-btn-text">Análisis Sintáctico</span>
+                </button>
+                <button id="clear-btn" class="outline-btn" onclick="clearEditor()" title="Limpiar código">
+                    Limpiar
                 </button>
             </div>
         </div>
-        
+
         <div id="error-container"></div>
         <div id="parse-result-container"></div>
 
-        <div id="results-section" class="glass-panel table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Lexema</th>
-                        <th>Nombre del token</th>
-                        <th>Valor del atributo</th>
-                    </tr>
-                </thead>
-                <tbody id="results-body">
-                    <!-- Results will be injected here -->
-                </tbody>
-            </table>
+        <div id="results-section" class="glass-panel">
+            <div class="table-header-bar">
+                <span class="table-title">Tokens Identificados</span>
+                <!-- <span class="token-count-badge" id="token-count">0 tokens únicos</span> -->
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lexema</th>
+                            <th>Tipo de Token</th>
+                            <th>Valor de Atributo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                        <!-- Tokens inyectados dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
     <script>
+        function clearEditor() {
+            document.getElementById('code-input').value = '';
+            hideAllResults();
+        }
+
         function hideAllResults() {
             document.getElementById('error-container').style.display = 'none';
             document.getElementById('results-section').style.display = 'none';
             document.getElementById('parse-result-container').style.display = 'none';
             document.getElementById('results-body').innerHTML = '';
+        }
+
+        function classifyToken(tokenName) {
+            const name = (tokenName || '').toUpperCase();
+            if (name === 'OPAR') return 'badge-opar';
+            if (name === 'OPREL') return 'badge-oprel';
+            if (name === 'TYPE') return 'badge-type';
+            if (name === 'ID') return 'badge-id';
+            if (['INT_LIT', 'FLOAT_LIT', 'STRING_LIT'].includes(name)) return 'badge-literal';
+            if (['PACKAGE', 'IMPORT', 'FUNC', 'VAR', 'CONST', 'STRUCT', 'IF', 'ELSE', 'FOR', 'RETURN', 'TRUE', 'FALSE', 'NIL', 'TYPE_KW'].includes(name) || tokenName === 'type') return 'badge-keyword';
+            if (['ASSIGN', 'ASSIGN_DEF', 'AND', 'OR', 'INC', 'DEC', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN'].includes(name)) return 'badge-operator';
+            if (['(', ')', '{', '}', '[', ']', ',', ';', ':', '.', '!'].includes(tokenName)) return 'badge-delimiter';
+            return 'badge-keyword';
         }
 
         async function analyzeCode() {
@@ -353,7 +510,7 @@
 
             hideAllResults();
             analyzeBtn.classList.add('loading');
-            document.getElementById('btn-text').textContent = 'Procesando...';
+            document.getElementById('btn-text').textContent = 'Analizando...';
 
             try {
                 const response = await fetch('/tokenize', {
@@ -370,20 +527,22 @@
                 const data = await response.json();
                 
                 if (data.errors && data.errors.length > 0) {
-                    showError("<b>Errores léxicos encontrados:</b><br>" + data.errors.map(escapeHtml).join('<br>'));
+                    showError("<b>Errores léxicos detectados:</b><br>" + data.errors.map(escapeHtml).join('<br>'));
                 }
 
                 if (data.tokens && data.tokens.length > 0) {
                     const resultsBody = document.getElementById('results-body');
                     data.tokens.forEach(token => {
                         const row = document.createElement('tr');
+                        const badgeClass = classifyToken(token.token_name);
                         row.innerHTML = `
                             <td>${escapeHtml(token.lexeme)}</td>
-                            <td><span class="token-badge">${escapeHtml(token.token_name)}</span></td>
+                            <td><span class="token-badge ${badgeClass}">${escapeHtml(token.token_name)}</span></td>
                             <td>${escapeHtml(token.attribute_value)}</td>
                         `;
                         resultsBody.appendChild(row);
                     });
+                    // document.getElementById('token-count').textContent = `${data.tokens.length} tokens únicos`;
                     document.getElementById('results-section').style.display = 'block';
                 } else if (!data.errors || data.errors.length === 0) {
                     showError("No se encontraron tokens válidos en el código.");
@@ -392,7 +551,7 @@
                 showError(error.message);
             } finally {
                 analyzeBtn.classList.remove('loading');
-                document.getElementById('btn-text').textContent = 'Análisis léxico';
+                document.getElementById('btn-text').textContent = 'Análisis Léxico';
             }
         }
 
@@ -428,7 +587,7 @@
                 showError(error.message);
             } finally {
                 parseBtn.classList.remove('loading');
-                document.getElementById('parse-btn-text').textContent = 'Análisis sintáctico';
+                document.getElementById('parse-btn-text').textContent = 'Análisis Sintáctico';
             }
         }
 
@@ -439,14 +598,17 @@
             if (data.success) {
                 container.innerHTML = `
                     <div class="success-card">
-                        <h3>Sintaxis Correcta</h3>
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            Sintaxis Correcta
+                        </h3>
                         <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
                     </div>
                 `;
             } else {
                 let codeSnippetHtml = '';
                 if (data.error_line !== null && data.error_index !== null) {
-                    const lines = originalCode.split('\\n');
+                    const lines = originalCode.split('\n');
                     const errLineText = lines[data.error_line - 1] || '';
                     
                     let absIndex = data.error_index;
@@ -457,7 +619,7 @@
                             col = absIndex - currentIdx;
                             break;
                         }
-                        currentIdx += lines[i].length + 1; // +1 for \n
+                        currentIdx += lines[i].length + 1;
                     }
                     
                     const before = errLineText.substring(0, col);
@@ -466,7 +628,7 @@
                     
                     codeSnippetHtml = `
                         <div class="code-snippet">
-                            <div class="line-number">${data.error_line}</div>
+                            <div class="line-number">Línea ${data.error_line}</div>
                             <div class="code-line">${escapeHtml(before)}<mark class="error-highlight">${escapeHtml(errChar)}</mark>${escapeHtml(after)}</div>
                         </div>
                     `;
@@ -474,7 +636,10 @@
 
                 container.innerHTML = `
                     <div class="error-card">
-                        <h3>Error de Sintaxis</h3>
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            Error de Sintaxis
+                        </h3>
                         <p style="margin:0; color:#cbd5e1;">${escapeHtml(data.error_message)}</p>
                         ${codeSnippetHtml}
                     </div>
@@ -496,6 +661,13 @@
                  .replace(/"/g, "&quot;")
                  .replace(/'/g, "&#039;");
         }
+
+        document.getElementById('code-input').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                analyzeSyntax();
+            }
+        });
     </script>
 </body>
 </html>
