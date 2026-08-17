@@ -3,7 +3,7 @@ from sly import Parser
 from core.lexer import MyLexer
 from api.schemas import ParseResponse
 
-# Suprimir warnings de SLY sobre shift/reduce conflicts inevitables por falta de llaves/indentación explícita
+# Suprimir warnings de SLY sobre conflictos reducir/desplazar inevitables por falta de llaves/indentación explícita
 log = logging.getLogger('sly')
 log.setLevel(logging.ERROR)
 
