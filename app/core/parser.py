@@ -24,10 +24,9 @@ class MyParser(Parser):
         self.error_msg = None
         self.error_line = None
         self.error_index = None
-
+        
     # ==========================================
     # Estructura Principal / Programa
-    # ==========================================
     @_('top_level_list')
     def program(self, p):
         return ('program', p.top_level_list)
@@ -50,7 +49,7 @@ class MyParser(Parser):
     def top_level(self, p):
         return p[0]
 
-    # Declaración de Paquete: package main
+    # Declaración de paquete, como: package main
     @_('PACKAGE ID')
     def package_decl(self, p):
         return ('package', p.ID)
@@ -123,7 +122,7 @@ class MyParser(Parser):
     def type_spec(self, p):
         return ('ptr_type', p.type_spec)
 
-    # Declaración de Tipos y Structs: type Persona struct { ... }
+    # Declaración de Tipos y Structs: type Persona struct {...}
     @_('TYPE_KW ID STRUCT "{" struct_field_list "}"')
     def type_decl(self, p):
         return ('type_struct', p.ID, p.struct_field_list)
@@ -149,8 +148,7 @@ class MyParser(Parser):
         return ('field', p.ID, p.type_spec)
 
     # ==========================================
-    # Bloques y Sentencias
-    # ==========================================
+    # Bloques y sentencias
     @_('"{" statement_list "}"')
     def block(self, p):
         return ('block', p.statement_list)
@@ -274,7 +272,7 @@ class MyParser(Parser):
     def for_stmt(self, p):
         return ('for_clause', p.simple_stmt0, p.expr, p.simple_stmt1, p.block)
 
-    # Sentencia de Retorno
+    # Return
     @_('RETURN expr')
     def return_stmt(self, p):
         return ('return', p.expr)
@@ -285,7 +283,6 @@ class MyParser(Parser):
 
     # ==========================================
     # Expresiones y Operadores
-    # ==========================================
     @_('expr "+" expr',
        'expr "-" expr',
        'expr "*" expr',
@@ -351,7 +348,6 @@ class MyParser(Parser):
 
     # ==========================================
     # Manejo de Errores Sintácticos
-    # ==========================================
     def error(self, p):
         if p:
             self.error_msg = f"Error de sintaxis cerca de '{p.value}' en la línea {p.lineno}"

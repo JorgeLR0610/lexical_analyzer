@@ -81,7 +81,7 @@ class MyLexer(Lexer):
         t.value = "GT"
         return t
 
-    # Operador de asignación simple '=' -> ASSIGN
+    # Operador de asignación simple '='
     ASSIGN = r'='
 
     # Literales flotantes
@@ -99,7 +99,7 @@ class MyLexer(Lexer):
     # Identificadores y Palabras Clave
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
 
-    # Palabras reservadas del lenguaje
+    # Palabras reservadas
     ID['package'] = PACKAGE
     ID['import'] = IMPORT
     ID['func'] = FUNC
@@ -220,7 +220,7 @@ def analyze_code(code: str) -> LexerResponse:
             token_name = token_type.lower()
             attribute_value = str(token.value)
 
-        # Deduplicación: Solo agregar a la tabla si no ha sido visto previamente
+        # Solo agregar a la tabla si no ha sido visto previamente
         token_key = (original_lexeme, token_name, attribute_value)
         if token_key not in seen:
             seen.add(token_key)
