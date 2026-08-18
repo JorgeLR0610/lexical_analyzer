@@ -1,3 +1,4 @@
+#type: ignore
 from sly import Lexer
 from api.schemas import TokenResponse, LexerResponse
 
@@ -10,7 +11,7 @@ class MyLexer(Lexer):
         ASSIGN_DEF, ASSIGN, OPREL, AND, OR, INC, DEC,
         ADD_ASSIGN, SUB_ASSIGN, MUL_ASSIGN, DIV_ASSIGN,
         TYPE
-    } # type: ignore
+    }
 
     literals = {
         '(', ')', '{', '}', '[', ']',
@@ -23,6 +24,7 @@ class MyLexer(Lexer):
 
     @_(r'\n+')
     def ignore_newline(self, t):
+        # Incrementar line number
         self.lineno += t.value.count('\n')
 
     # Comentarios de bloque multilínea: /* ... */
@@ -96,10 +98,10 @@ class MyLexer(Lexer):
         self.lineno += t.value.count('\n')
         return t
 
-    # Identificadores y Palabras Clave
+    # Catch all para todos los identificadores y palabras clave
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
 
-    # Palabras reservadas
+    # Separar ids de las palabras reservadas
     ID['package'] = PACKAGE
     ID['import'] = IMPORT
     ID['func'] = FUNC
@@ -115,7 +117,7 @@ class MyLexer(Lexer):
     ID['false'] = FALSE
     ID['nil'] = NIL
 
-    # Palabras reservadas de tipos de datos primitivos -> TYPE
+    # Separar tipos de datos primitivos -> TYPE
     ID['int'] = TYPE
     ID['string'] = TYPE
     ID['bool'] = TYPE

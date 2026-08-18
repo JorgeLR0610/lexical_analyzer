@@ -1,3 +1,4 @@
+#type: ignore
 import logging
 from sly import Parser
 from core.lexer import MyLexer
@@ -6,6 +7,8 @@ from api.schemas import ParseResponse
 # Configurar logging de SLY
 log = logging.getLogger('sly')
 log.setLevel(logging.ERROR)
+
+# Parser LALR ascendente generado a partir de las reglas anotadas con @_('...'), similar a yacc/bison
 
 
 class MyParser(Parser):
@@ -54,7 +57,7 @@ class MyParser(Parser):
     def package_decl(self, p):
         return ('package', p.ID)
 
-    # Declaración de Importaciones: import "fmt" o import ( "fmt" "os" )
+    # Declaración de importaciones: import "fmt" o import ( "fmt" "os" )
     @_('IMPORT STRING_LIT')
     def import_decl(self, p):
         return ('import_single', p.STRING_LIT)
@@ -79,7 +82,7 @@ class MyParser(Parser):
     def import_spec(self, p):
         return (p.ID, p.STRING_LIT)
 
-    # Declaración de Funciones: func sumar(a int, b int) int { ... }
+    # Declaración de funciones: func sumar(a int, b int) int { ... }
     @_('FUNC ID "(" param_list ")" type_spec block')
     def func_decl(self, p):
         return ('func', p.ID, p.param_list, p.type_spec, p.block)
@@ -109,7 +112,7 @@ class MyParser(Parser):
     def param(self, p):
         return (p.ID, p.type_spec)
 
-    # Especificación de Tipos (primitivos TYPE o personalizados ID, []type, *type)
+    # Especificación de tipos (primitivos TYPE o personalizados ID, []type, *type)
     @_('TYPE', 'ID')
     def type_spec(self, p):
         return p[0]
@@ -259,7 +262,7 @@ class MyParser(Parser):
     def if_stmt(self, p):
         return ('if_with_init_else_if', p.simple_stmt, p.expr, p.block, p.if_stmt)
 
-    # Bucles FOR (Infinito, Condicional tipo While, y de 3 componentes)
+    # Bucles FOR (infinito, condicional tipo While, y de 3 componentes)
     @_('FOR block')
     def for_stmt(self, p):
         return ('for_inf', p.block)
@@ -282,7 +285,7 @@ class MyParser(Parser):
         return ('return', None)
 
     # ==========================================
-    # Expresiones y Operadores
+    # Expresiones y operadores
     @_('expr "+" expr',
        'expr "-" expr',
        'expr "*" expr',
