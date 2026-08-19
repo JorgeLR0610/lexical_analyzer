@@ -160,8 +160,6 @@ OPREL_MAP = {
 ARITHMETIC_OPS = {'+', '-', '*', '/', '%'}
 
 OTHER_OPERATORS_MAP = {
-    'ASSIGN_DEF': ':=',
-    'ASSIGN': '=',
     'AND': '&&',
     'OR': '||',
     'INC': '++',
@@ -187,8 +185,16 @@ def analyze_code(code: str) -> LexerResponse:
             attribute_value = str(token.value)
         elif token_type == 'ASSIGN':
             original_lexeme = "="
-            token_name = "ASSIGN"
+            token_name = "asign"
             attribute_value = "="
+        elif token_type == 'ASSIGN_DEF':
+            original_lexeme = ":="
+            token_name = "asign_corta"
+            attribute_value = ":="
+        elif token.value == ';':
+            original_lexeme = ";"
+            token_name = "delimitador"
+            attribute_value = ";"
         elif token_type in ARITHMETIC_OPS or token.value in ARITHMETIC_OPS:
             original_lexeme = str(token.value)
             token_name = "OPAR"

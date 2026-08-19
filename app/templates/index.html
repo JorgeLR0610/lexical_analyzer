@@ -424,7 +424,7 @@
 <body>
     <main>
         <div class="header">
-            <h1>Analizador Léxico y Sintáctico</h1>
+            <h1>Analizador léxico y sintáctico</h1>
             <p class="subtitle">Analizador léxico y sintáctico para un subconjunto de Go</p>
         </div>
 
@@ -494,8 +494,8 @@
             if (name === 'ID') return 'badge-id';
             if (['INT_LIT', 'FLOAT_LIT', 'STRING_LIT'].includes(name)) return 'badge-literal';
             if (['PACKAGE', 'IMPORT', 'FUNC', 'VAR', 'CONST', 'STRUCT', 'IF', 'ELSE', 'FOR', 'RETURN', 'TRUE', 'FALSE', 'NIL', 'TYPE_KW'].includes(name) || tokenName === 'type') return 'badge-keyword';
-            if (['ASSIGN', 'ASSIGN_DEF', 'AND', 'OR', 'INC', 'DEC', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN'].includes(name)) return 'badge-operator';
-            if (['(', ')', '{', '}', '[', ']', ',', ';', ':', '.', '!'].includes(tokenName)) return 'badge-delimiter';
+            if (['ASIGN', 'ASIGN_CORTA', 'ASSIGN', 'ASSIGN_DEF', 'AND', 'OR', 'INC', 'DEC', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN'].includes(name)) return 'badge-operator';
+            if (['DELIMITADOR', '(', ')', '{', '}', '[', ']', ',', ';', ':', '.', '!'].includes(tokenName) || name === 'DELIMITADOR') return 'badge-delimiter';
             return 'badge-keyword';
         }
 

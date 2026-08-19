@@ -25,13 +25,29 @@ class TestGoLexer(unittest.TestCase):
         actual_types = [t.token_name for t in res.tokens]
         self.assertEqual(actual_types, expected_types)
 
-    def test_assignment_operator_assign(self):
+    def test_assignment_operator_asign(self):
         code = "var x = 10"
         res = analyze_code(code)
         self.assertEqual(len(res.errors), 0)
         assign_tok = next(t for t in res.tokens if t.lexeme == "=")
-        self.assertEqual(assign_tok.token_name, "ASSIGN")
+        self.assertEqual(assign_tok.token_name, "asign")
         self.assertEqual(assign_tok.attribute_value, "=")
+
+    def test_short_assignment_operator_asign_corta(self):
+        code = "x := 20"
+        res = analyze_code(code)
+        self.assertEqual(len(res.errors), 0)
+        short_assign_tok = next(t for t in res.tokens if t.lexeme == ":=")
+        self.assertEqual(short_assign_tok.token_name, "asign_corta")
+        self.assertEqual(short_assign_tok.attribute_value, ":=")
+
+    def test_semicolon_delimitador(self):
+        code = "var x = 10;"
+        res = analyze_code(code)
+        self.assertEqual(len(res.errors), 0)
+        semi_tok = next(t for t in res.tokens if t.lexeme == ";")
+        self.assertEqual(semi_tok.token_name, "delimitador")
+        self.assertEqual(semi_tok.attribute_value, ";")
 
     def test_arithmetic_operators_opar(self):
         code = "+ - * / %"
@@ -203,12 +219,12 @@ class TestGoParser(unittest.TestCase):
 
     def test_variable_declarations(self):
         code = """
-        var a int = 10
-        var b string
-        var c = 20
-        const PI float64 = 3.1416
-        const MAX = 100
-        y := a + 50
+        var a int = 10;
+        var b string;
+        var c = 20;
+        const PI float64 = 3.1416;
+        const MAX = 100;
+        y := a + 50;
         """
         res = analyze_syntax(code)
         self.assertTrue(res.success)
