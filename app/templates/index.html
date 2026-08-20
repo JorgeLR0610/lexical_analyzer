@@ -90,31 +90,63 @@
             transition: border-color 0.3s ease;
         }
 
+        /* Editor con Números de Línea */
         .editor-wrapper {
             position: relative;
         }
 
-        textarea {
-            width: 100%;
-            height: 240px;
+        .editor-container {
+            display: flex;
             background: #090d16;
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 12px;
-            padding: 1.25rem;
+            overflow: hidden;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            height: 260px;
+        }
+
+        .editor-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .line-numbers {
+            background: rgba(255, 255, 255, 0.03);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            color: #64748b;
+            font-family: var(--mono-font);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            padding: 1.25rem 0.75rem 1.25rem 1rem;
+            text-align: right;
+            user-select: none;
+            overflow: hidden;
+            white-space: pre-line;
+            min-width: 3.4rem;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            flex: 1;
+            height: 100%;
+            background: transparent;
+            border: none;
+            padding: 1.25rem 1.25rem 1.25rem 0.75rem;
             color: #f1f5f9;
             font-family: var(--mono-font);
             font-size: 0.95rem;
             line-height: 1.6;
-            resize: vertical;
+            resize: none;
             box-sizing: border-box;
             tab-size: 4;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            overflow: auto;
+            white-space: pre;
+            word-break: normal;
         }
 
         textarea:focus {
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px var(--primary-glow);
+            box-shadow: none;
         }
 
         textarea::placeholder {
@@ -478,17 +510,20 @@
 
         <div class="glass-panel">
             <div class="editor-wrapper">
-                <textarea id="code-input" placeholder="Escribe o pega código de Go aquí..." spellcheck="false"></textarea>
+                <div class="editor-container">
+                    <div class="line-numbers" id="line-numbers">1</div>
+                    <textarea id="code-input" placeholder="Escribe o pega código de Go aquí..." spellcheck="false"></textarea>
+                </div>
             </div>
 
             <div class="button-group">
                 <button id="analyze-btn" onclick="analyzeCode()">
                     <div class="spinner" id="lex-spinner"></div>
-                    <span id="btn-text">Análisis Léxico</span>
+                    <span id="btn-text">Análisis léxico</span>
                 </button>
                 <button id="parse-btn" class="secondary-btn" onclick="analyzeSyntax()">
                     <div class="spinner" id="parse-spinner"></div>
-                    <span id="parse-btn-text">Análisis Sintáctico</span>
+                    <span id="parse-btn-text">Análisis sintáctico</span>
                 </button>
                 <button id="clear-btn" class="outline-btn" onclick="clearEditor()" title="Limpiar código">
                     Limpiar
@@ -521,6 +556,42 @@
     </main>
 
     <script>
+        const textarea = document.getElementById('code-input');
+        const lineNumbers = document.getElementById('line-numbers');
+
+        function updateLineNumbers() {
+            const lines = (textarea.value || '').split('\n').length;
+            let numbersText = '';
+            for (let i = 1; i <= Math.max(lines, 1); i++) {
+                numbersText += i + '\n';
+            }
+            lineNumbers.textContent = numbersText;
+        }
+
+        function syncScroll() {
+            lineNumbers.scrollTop = textarea.scrollTop;
+        }
+
+        textarea.addEventListener('input', updateLineNumbers);
+        textarea.addEventListener('scroll', syncScroll);
+
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+                updateLineNumbers();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                analyzeSyntax();
+            }
+        });
+
+        // Inicializar números de línea
+        updateLineNumbers();
+
         // Inicializar Mermaid
         if (window.mermaid) {
             mermaid.initialize({
@@ -536,7 +607,8 @@
         }
 
         function clearEditor() {
-            document.getElementById('code-input').value = '';
+            textarea.value = '';
+            updateLineNumbers();
             hideAllResults();
         }
 
@@ -561,7 +633,7 @@
         }
 
         async function analyzeCode() {
-            const codeInput = document.getElementById('code-input').value;
+            const codeInput = textarea.value;
             const analyzeBtn = document.getElementById('analyze-btn');
             
             if (!codeInput.trim()) {
@@ -616,7 +688,7 @@
         }
 
         async function analyzeSyntax() {
-            const codeInput = document.getElementById('code-input').value;
+            const codeInput = textarea.value;
             const parseBtn = document.getElementById('parse-btn');
             
             if (!codeInput.trim()) {
@@ -662,7 +734,7 @@
                 successDiv.innerHTML = `
                     <h3>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        Sintaxis Correcta
+                        Sintaxis correcta
                     </h3>
                     <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
                 `;
@@ -676,7 +748,7 @@
                         <div class="ast-header-bar">
                             <div class="ast-title">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00add8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                                Árbol Sintáctico
+                                Árbol sintáctico
                             </div>
                         </div>
                         <div class="ast-viewport">
@@ -730,7 +802,7 @@
                     <div class="error-card">
                         <h3>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                            Error de Sintaxis
+                            Error de sintaxis
                         </h3>
                         <p style="margin:0; color:#cbd5e1;">${escapeHtml(data.error_message)}</p>
                         ${codeSnippetHtml}
@@ -753,13 +825,6 @@
                  .replace(/"/g, "&quot;")
                  .replace(/'/g, "&#039;");
         }
-
-        document.getElementById('code-input').addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                analyzeSyntax();
-            }
-        });
     </script>
 </body>
 </html>
