@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -219,6 +220,9 @@
         #parse-result-container {
             display: none;
             animation: fadeIn 0.3s ease-out forwards;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
 
         .error-card {
@@ -251,6 +255,59 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 1.15rem;
+        }
+
+        /* AST Card & Viewer Styles */
+        .ast-card {
+            background: var(--container-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .ast-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .ast-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ast-viewport {
+            background: #070b14;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow: auto;
+            max-height: 550px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #mermaid-render-area {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        #mermaid-render-area svg {
+            max-width: 100%;
+            height: auto;
         }
 
         .code-snippet {
@@ -311,15 +368,6 @@
             font-weight: 700;
             font-size: 1.1rem;
             color: #ffffff;
-        }
-
-        .token-count-badge {
-            font-size: 0.85rem;
-            color: #94a3b8;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 0.25rem 0.65rem;
-            border-radius: 9999px;
-            font-weight: 600;
         }
 
         .table-container {
@@ -454,7 +502,6 @@
         <div id="results-section" class="glass-panel">
             <div class="table-header-bar">
                 <span class="table-title">Tokens Identificados</span>
-                <!-- <span class="token-count-badge" id="token-count">0 tokens únicos</span> -->
             </div>
             <div class="table-container">
                 <table>
@@ -474,6 +521,20 @@
     </main>
 
     <script>
+        // Inicializar Mermaid
+        if (window.mermaid) {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                securityLevel: 'loose',
+                flowchart: {
+                    curve: 'basis',
+                    useMaxWidth: false,
+                    htmlLabels: true
+                }
+            });
+        }
+
         function clearEditor() {
             document.getElementById('code-input').value = '';
             hideAllResults();
@@ -542,7 +603,6 @@
                         `;
                         resultsBody.appendChild(row);
                     });
-                    // document.getElementById('token-count').textContent = `${data.tokens.length} tokens únicos`;
                     document.getElementById('results-section').style.display = 'block';
                 } else if (!data.errors || data.errors.length === 0) {
                     showError("No se encontraron tokens válidos en el código.");
@@ -591,20 +651,52 @@
             }
         }
 
-        function displaySyntaxResult(data, originalCode) {
+        async function displaySyntaxResult(data, originalCode) {
             const container = document.getElementById('parse-result-container');
-            container.style.display = 'block';
+            container.style.display = 'flex';
+            container.innerHTML = '';
             
             if (data.success) {
-                container.innerHTML = `
-                    <div class="success-card">
-                        <h3>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                            Sintaxis Correcta
-                        </h3>
-                        <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
-                    </div>
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-card';
+                successDiv.innerHTML = `
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Sintaxis Correcta
+                    </h3>
+                    <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
                 `;
+                container.appendChild(successDiv);
+
+                // Si se generó el árbol sintáctico (AST), mostrar directamente el panel de visualización
+                if (data.ast_mermaid) {
+                    const astCard = document.createElement('div');
+                    astCard.className = 'ast-card';
+                    astCard.innerHTML = `
+                        <div class="ast-header-bar">
+                            <div class="ast-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00add8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                Árbol Sintáctico
+                            </div>
+                        </div>
+                        <div class="ast-viewport">
+                            <div id="mermaid-render-area"></div>
+                        </div>
+                    `;
+                    container.appendChild(astCard);
+
+                    // Renderizar diagrama Mermaid directamente
+                    if (window.mermaid) {
+                        try {
+                            const renderArea = document.getElementById('mermaid-render-area');
+                            const uniqueId = 'mermaid-graph-' + Date.now();
+                            const { svg } = await mermaid.render(uniqueId, data.ast_mermaid);
+                            renderArea.innerHTML = svg;
+                        } catch (err) {
+                            console.error("Error al renderizar Mermaid:", err);
+                        }
+                    }
+                }
             } else {
                 let codeSnippetHtml = '';
                 if (data.error_line !== null && data.error_index !== null) {

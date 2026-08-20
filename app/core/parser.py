@@ -8,8 +8,6 @@ from api.schemas import ParseResponse
 log = logging.getLogger('sly')
 log.setLevel(logging.ERROR)
 
-# Parser LALR ascendente generado a partir de las reglas anotadas con @_('...'), similar a yacc/bison
-
 
 class MyParser(Parser):
     tokens = MyLexer.tokens
@@ -27,9 +25,10 @@ class MyParser(Parser):
         self.error_msg = None
         self.error_line = None
         self.error_index = None
-        
+
     # ==========================================
     # Estructura Principal / Programa
+    # ==========================================
     @_('top_level_list')
     def program(self, p):
         return ('program', p.top_level_list)
@@ -52,12 +51,12 @@ class MyParser(Parser):
     def top_level(self, p):
         return p[0]
 
-    # Declaración de paquete, como: package main
+    # Declaración de Paquete: package main
     @_('PACKAGE ID')
     def package_decl(self, p):
         return ('package', p.ID)
 
-    # Declaración de importaciones: import "fmt" o import ( "fmt" "os" )
+    # Declaración de Importaciones: import "fmt" o import ( "fmt" "os" )
     @_('IMPORT STRING_LIT')
     def import_decl(self, p):
         return ('import_single', p.STRING_LIT)
@@ -82,7 +81,7 @@ class MyParser(Parser):
     def import_spec(self, p):
         return (p.ID, p.STRING_LIT)
 
-    # Declaración de funciones: func sumar(a int, b int) int { ... }
+    # Declaración de Funciones: func sumar(a int, b int) int { ... }
     @_('FUNC ID "(" param_list ")" type_spec block')
     def func_decl(self, p):
         return ('func', p.ID, p.param_list, p.type_spec, p.block)
@@ -112,7 +111,7 @@ class MyParser(Parser):
     def param(self, p):
         return (p.ID, p.type_spec)
 
-    # Especificación de tipos (primitivos TYPE o personalizados ID, []type, *type)
+    # Especificación de Tipos (primitivos TYPE o personalizados ID, []type, *type)
     @_('TYPE', 'ID')
     def type_spec(self, p):
         return p[0]
@@ -125,7 +124,7 @@ class MyParser(Parser):
     def type_spec(self, p):
         return ('ptr_type', p.type_spec)
 
-    # Declaración de Tipos y Structs: type Persona struct {...}
+    # Declaración de Tipos y Structs: type Persona struct { ... }
     @_('TYPE_KW ID STRUCT "{" struct_field_list "}"')
     def type_decl(self, p):
         return ('type_struct', p.ID, p.struct_field_list)
@@ -151,7 +150,8 @@ class MyParser(Parser):
         return ('field', p.ID, p.type_spec)
 
     # ==========================================
-    # Bloques y sentencias
+    # Bloques y Sentencias
+    # ==========================================
     @_('"{" statement_list "}"')
     def block(self, p):
         return ('block', p.statement_list)
@@ -262,7 +262,7 @@ class MyParser(Parser):
     def if_stmt(self, p):
         return ('if_with_init_else_if', p.simple_stmt, p.expr, p.block, p.if_stmt)
 
-    # Bucles FOR (infinito, condicional tipo While, y de 3 componentes)
+    # Bucles FOR (Infinito, Condicional tipo While, y de 3 componentes)
     @_('FOR block')
     def for_stmt(self, p):
         return ('for_inf', p.block)
@@ -275,7 +275,7 @@ class MyParser(Parser):
     def for_stmt(self, p):
         return ('for_clause', p.simple_stmt0, p.expr, p.simple_stmt1, p.block)
 
-    # Return
+    # Sentencia de Retorno
     @_('RETURN expr')
     def return_stmt(self, p):
         return ('return', p.expr)
@@ -285,7 +285,8 @@ class MyParser(Parser):
         return ('return', None)
 
     # ==========================================
-    # Expresiones y operadores
+    # Expresiones y Operadores
+    # ==========================================
     @_('expr "+" expr',
        'expr "-" expr',
        'expr "*" expr',
@@ -351,6 +352,7 @@ class MyParser(Parser):
 
     # ==========================================
     # Manejo de Errores Sintácticos
+    # ==========================================
     def error(self, p):
         if p:
             self.error_msg = f"Error de sintaxis cerca de '{p.value}' en la línea {p.lineno}"
@@ -360,6 +362,489 @@ class MyParser(Parser):
             self.error_msg = "Error de sintaxis: Fin de archivo inesperado (posibles llaves '{' o paréntesis sin cerrar)"
             self.error_line = None
             self.error_index = None
+
+
+# ==========================================
+# Visualizador del Árbol Sintáctico (AST)
+# ==========================================
+class ASTVisualizer:
+    def __init__(self):
+        self.node_counter = 0
+
+    def generate_mermaid(self, ast_root) -> str:
+        self.node_counter = 0
+        lines = ["graph TD"]
+        lines.append("    classDef rootNode fill:#0284c7,stroke:#38bdf8,stroke-width:2px,color:#ffffff,font-weight:bold;")
+        lines.append("    classDef funcNode fill:#4f46e5,stroke:#818cf8,stroke-width:2px,color:#ffffff,font-weight:bold;")
+        lines.append("    classDef stmtNode fill:#1e293b,stroke:#64748b,stroke-width:1.5px,color:#f8fafc;")
+        lines.append("    classDef exprNode fill:#065f46,stroke:#34d399,stroke-width:1.5px,color:#f8fafc;")
+        lines.append("    classDef litNode fill:#831843,stroke:#f472b6,stroke-width:1px,color:#fdf2f8;")
+        lines.append("    classDef typeNode fill:#134e4a,stroke:#2dd4bf,stroke-width:1.5px,color:#f0fdfa;")
+
+        root_id = self._build_mermaid(ast_root, lines)
+        if root_id:
+            lines.append(f"    class {root_id} rootNode;")
+        return "\n".join(lines)
+
+    def _sanitize(self, text: str) -> str:
+        text = str(text).replace('"', "'").replace("\n", " ")
+        if len(text) > 40:
+            text = text[:37] + "..."
+        return text
+
+    def _new_node(self, label: str, node_class: str = None) -> tuple[str, str]:
+        self.node_counter += 1
+        node_id = f"node_{self.node_counter}"
+        sanitized = self._sanitize(label)
+        def_str = f'    {node_id}["{sanitized}"]'
+        if node_class:
+            def_str += f"\n    class {node_id} {node_class};"
+        return node_id, def_str
+
+    def _build_mermaid(self, node, lines: list) -> str:
+        if node is None:
+            return None
+
+        if isinstance(node, (str, int, float, bool)):
+            node_id, def_str = self._new_node(str(node), "litNode")
+            lines.append(def_str)
+            return node_id
+
+        if isinstance(node, list):
+            if not node:
+                return None
+            node_id, def_str = self._new_node("Secuencia", "stmtNode")
+            lines.append(def_str)
+            for item in node:
+                child_id = self._build_mermaid(item, lines)
+                if child_id:
+                    lines.append(f"    {node_id} --> {child_id}")
+            return node_id
+
+        if not isinstance(node, tuple):
+            node_id, def_str = self._new_node(str(node), "litNode")
+            lines.append(def_str)
+            return node_id
+
+        tag = node[0]
+
+        if tag == 'program':
+            node_id, def_str = self._new_node("Programa (Go)", "rootNode")
+            lines.append(def_str)
+            for item in node[1]:
+                child_id = self._build_mermaid(item, lines)
+                if child_id:
+                    lines.append(f"    {node_id} --> {child_id}")
+            return node_id
+
+        elif tag == 'package':
+            node_id, def_str = self._new_node(f"Package: {node[1]}", "typeNode")
+            lines.append(def_str)
+            return node_id
+
+        elif tag == 'import_single':
+            node_id, def_str = self._new_node(f"Import: {node[1]}", "typeNode")
+            lines.append(def_str)
+            return node_id
+
+        elif tag == 'import_multi':
+            node_id, def_str = self._new_node("Imports", "typeNode")
+            lines.append(def_str)
+            for imp in node[1]:
+                child_id = self._build_mermaid(imp, lines)
+                if child_id:
+                    lines.append(f"    {node_id} --> {child_id}")
+            return node_id
+
+        elif tag == 'func':
+            name = node[1]
+            ret_type = node[3] if node[3] else "void"
+            node_id, def_str = self._new_node(f"Func: {name}() -> {ret_type}", "funcNode")
+            lines.append(def_str)
+            
+            if node[2]:
+                params_id, p_def = self._new_node("Parámetros", "typeNode")
+                lines.append(p_def)
+                lines.append(f"    {node_id} --> {params_id}")
+                for p in node[2]:
+                    p_id, p_item_def = self._new_node(f"{p[0]}: {p[1]}", "typeNode")
+                    lines.append(p_item_def)
+                    lines.append(f"    {params_id} --> {p_id}")
+
+            block_id = self._build_mermaid(node[4], lines)
+            if block_id:
+                lines.append(f"    {node_id} --> {block_id}")
+            return node_id
+
+        elif tag == 'block':
+            node_id, def_str = self._new_node("Bloque { ... }", "stmtNode")
+            lines.append(def_str)
+            for stmt in node[1]:
+                child_id = self._build_mermaid(stmt, lines)
+                if child_id:
+                    lines.append(f"    {node_id} --> {child_id}")
+            return node_id
+
+        elif tag == 'var_init':
+            node_id, def_str = self._new_node(f"VarDecl: {node[1]} ({node[2]})", "stmtNode")
+            lines.append(def_str)
+            expr_id = self._build_mermaid(node[3], lines)
+            if expr_id:
+                lines.append(f"    {node_id} -- \"=\" --> {expr_id}")
+            return node_id
+
+        elif tag == 'var_typed':
+            node_id, def_str = self._new_node(f"VarDecl: {node[1]} ({node[2]})", "stmtNode")
+            lines.append(def_str)
+            return node_id
+
+        elif tag == 'var_inferred':
+            node_id, def_str = self._new_node(f"VarDecl: {node[1]}", "stmtNode")
+            lines.append(def_str)
+            expr_id = self._build_mermaid(node[2], lines)
+            if expr_id:
+                lines.append(f"    {node_id} -- \"=\" --> {expr_id}")
+            return node_id
+
+        elif tag == 'const_typed':
+            node_id, def_str = self._new_node(f"ConstDecl: {node[1]} ({node[2]})", "stmtNode")
+            lines.append(def_str)
+            expr_id = self._build_mermaid(node[3], lines)
+            if expr_id:
+                lines.append(f"    {node_id} -- \"=\" --> {expr_id}")
+            return node_id
+
+        elif tag == 'const_inferred':
+            node_id, def_str = self._new_node(f"ConstDecl: {node[1]}", "stmtNode")
+            lines.append(def_str)
+            expr_id = self._build_mermaid(node[2], lines)
+            if expr_id:
+                lines.append(f"    {node_id} -- \"=\" --> {expr_id}")
+            return node_id
+
+        elif tag == 'short_var':
+            node_id, def_str = self._new_node(f"Asignación Corta (:=): {node[1]}", "stmtNode")
+            lines.append(def_str)
+            expr_id = self._build_mermaid(node[2], lines)
+            if expr_id:
+                lines.append(f"    {node_id} --> {expr_id}")
+            return node_id
+
+        elif tag == 'assign':
+            op = node[1]
+            node_id, def_str = self._new_node(f"Asignación ({op})", "stmtNode")
+            lines.append(def_str)
+            lhs_id = self._build_mermaid(node[2], lines)
+            rhs_id = self._build_mermaid(node[3], lines)
+            if lhs_id:
+                lines.append(f"    {node_id} -- \"Destino\" --> {lhs_id}")
+            if rhs_id:
+                lines.append(f"    {node_id} -- \"Valor\" --> {rhs_id}")
+            return node_id
+
+        elif tag in ('inc', 'dec'):
+            op_sym = "++" if tag == 'inc' else "--"
+            node_id, def_str = self._new_node(f"Op Unario ({op_sym})", "stmtNode")
+            lines.append(def_str)
+            child_id = self._build_mermaid(node[1], lines)
+            if child_id:
+                lines.append(f"    {node_id} --> {child_id}")
+            return node_id
+
+        elif tag in ('if', 'if_else', 'if_else_if'):
+            node_id, def_str = self._new_node("Sentencia IF", "stmtNode")
+            lines.append(def_str)
+            cond_id = self._build_mermaid(node[1], lines)
+            then_id = self._build_mermaid(node[2], lines)
+            if cond_id:
+                lines.append(f"    {node_id} -- \"Condición\" --> {cond_id}")
+            if then_id:
+                lines.append(f"    {node_id} -- \"Then\" --> {then_id}")
+            if len(node) > 3 and node[3]:
+                else_id = self._build_mermaid(node[3], lines)
+                if else_id:
+                    lines.append(f"    {node_id} -- \"Else\" --> {else_id}")
+            return node_id
+
+        elif tag.startswith('if_with_init'):
+            node_id, def_str = self._new_node("IF (con Inicialización)", "stmtNode")
+            lines.append(def_str)
+            init_id = self._build_mermaid(node[1], lines)
+            cond_id = self._build_mermaid(node[2], lines)
+            then_id = self._build_mermaid(node[3], lines)
+            if init_id:
+                lines.append(f"    {node_id} -- \"Init\" --> {init_id}")
+            if cond_id:
+                lines.append(f"    {node_id} -- \"Cond\" --> {cond_id}")
+            if then_id:
+                lines.append(f"    {node_id} -- \"Then\" --> {then_id}")
+            if len(node) > 4 and node[4]:
+                else_id = self._build_mermaid(node[4], lines)
+                if else_id:
+                    lines.append(f"    {node_id} -- \"Else\" --> {else_id}")
+            return node_id
+
+        elif tag == 'for_inf':
+            node_id, def_str = self._new_node("Bucle FOR (Infinito)", "stmtNode")
+            lines.append(def_str)
+            block_id = self._build_mermaid(node[1], lines)
+            if block_id:
+                lines.append(f"    {node_id} --> {block_id}")
+            return node_id
+
+        elif tag == 'for_cond':
+            node_id, def_str = self._new_node("Bucle FOR (Condicional)", "stmtNode")
+            lines.append(def_str)
+            cond_id = self._build_mermaid(node[1], lines)
+            block_id = self._build_mermaid(node[2], lines)
+            if cond_id:
+                lines.append(f"    {node_id} -- \"Condición\" --> {cond_id}")
+            if block_id:
+                lines.append(f"    {node_id} -- \"Cuerpo\" --> {block_id}")
+            return node_id
+
+        elif tag == 'for_clause':
+            node_id, def_str = self._new_node("Bucle FOR (3 Cláusulas)", "stmtNode")
+            lines.append(def_str)
+            init_id = self._build_mermaid(node[1], lines)
+            cond_id = self._build_mermaid(node[2], lines)
+            post_id = self._build_mermaid(node[3], lines)
+            body_id = self._build_mermaid(node[4], lines)
+            if init_id:
+                lines.append(f"    {node_id} -- \"Init\" --> {init_id}")
+            if cond_id:
+                lines.append(f"    {node_id} -- \"Cond\" --> {cond_id}")
+            if post_id:
+                lines.append(f"    {node_id} -- \"Post\" --> {post_id}")
+            if body_id:
+                lines.append(f"    {node_id} -- \"Cuerpo\" --> {body_id}")
+            return node_id
+
+        elif tag == 'return':
+            node_id, def_str = self._new_node("Sentencia Return", "stmtNode")
+            lines.append(def_str)
+            if node[1]:
+                expr_id = self._build_mermaid(node[1], lines)
+                if expr_id:
+                    lines.append(f"    {node_id} --> {expr_id}")
+            return node_id
+
+        elif tag == 'call_stmt':
+            return self._build_mermaid(node[1], lines)
+
+        elif tag in ('binop', 'relop', 'logop'):
+            op = node[1]
+            node_id, def_str = self._new_node(f"Op: {op}", "exprNode")
+            lines.append(def_str)
+            left_id = self._build_mermaid(node[2], lines)
+            right_id = self._build_mermaid(node[3], lines)
+            if left_id:
+                lines.append(f"    {node_id} -- \"Izq\" --> {left_id}")
+            if right_id:
+                lines.append(f"    {node_id} -- \"Der\" --> {right_id}")
+            return node_id
+
+        elif tag == 'unary':
+            op = node[1]
+            node_id, def_str = self._new_node(f"Unario: {op}", "exprNode")
+            lines.append(def_str)
+            expr_id = self._build_mermaid(node[2], lines)
+            if expr_id:
+                lines.append(f"    {node_id} --> {expr_id}")
+            return node_id
+
+        elif tag == 'lit':
+            node_id, def_str = self._new_node(f"{node[1]}", "litNode")
+            lines.append(def_str)
+            return node_id
+
+        elif tag == 'selector':
+            node_id, def_str = self._new_node(f"Acceso (. {node[2]})", "exprNode")
+            lines.append(def_str)
+            obj_id = self._build_mermaid(node[1], lines)
+            if obj_id:
+                lines.append(f"    {node_id} --> {obj_id}")
+            return node_id
+
+        elif tag == 'index':
+            node_id, def_str = self._new_node("Indexación [ ]", "exprNode")
+            lines.append(def_str)
+            arr_id = self._build_mermaid(node[1], lines)
+            idx_id = self._build_mermaid(node[2], lines)
+            if arr_id:
+                lines.append(f"    {node_id} -- \"Array\" --> {arr_id}")
+            if idx_id:
+                lines.append(f"    {node_id} -- \"Índice\" --> {idx_id}")
+            return node_id
+
+        elif tag == 'call':
+            node_id, def_str = self._new_node("Llamada a Función ( )", "exprNode")
+            lines.append(def_str)
+            callee_id = self._build_mermaid(node[1], lines)
+            if callee_id:
+                lines.append(f"    {node_id} -- \"Función\" --> {callee_id}")
+            if node[2]:
+                args_id, a_def = self._new_node("Argumentos", "exprNode")
+                lines.append(a_def)
+                lines.append(f"    {node_id} --> {args_id}")
+                for arg in node[2]:
+                    arg_id = self._build_mermaid(arg, lines)
+                    if arg_id:
+                        lines.append(f"    {args_id} --> {arg_id}")
+            return node_id
+
+        elif tag == 'type_struct':
+            node_id, def_str = self._new_node(f"Struct: {node[1]}", "typeNode")
+            lines.append(def_str)
+            for f in node[2]:
+                f_id, f_def = self._new_node(f"{f[1]}: {f[2]}", "typeNode")
+                lines.append(f_def)
+                lines.append(f"    {node_id} --> {f_id}")
+            return node_id
+
+        elif tag == 'type_alias':
+            node_id, def_str = self._new_node(f"Alias Tipo: {node[1]} = {node[2]}", "typeNode")
+            lines.append(def_str)
+            return node_id
+
+        elif tag == 'empty_stmt':
+            return None
+
+        # Fallback para cualquier otra tupla
+        node_id, def_str = self._new_node(f"Nodo: {tag}", "stmtNode")
+        lines.append(def_str)
+        for i in range(1, len(node)):
+            child_id = self._build_mermaid(node[i], lines)
+            if child_id:
+                lines.append(f"    {node_id} --> {child_id}")
+        return node_id
+
+    def generate_json_tree(self, node) -> dict:
+        if node is None:
+            return None
+        if isinstance(node, (str, int, float, bool)):
+            return {"name": str(node), "type": "literal"}
+        if isinstance(node, list):
+            return {
+                "name": "Secuencia",
+                "type": "sequence",
+                "children": [self.generate_json_tree(item) for item in node if item is not None]
+            }
+        if not isinstance(node, tuple):
+            return {"name": str(node), "type": "value"}
+        
+        tag = node[0]
+        if tag == 'program':
+            return {
+                "name": "Programa (Go)",
+                "type": "program",
+                "children": [self.generate_json_tree(item) for item in node[1] if item is not None]
+            }
+        elif tag == 'package':
+            return {"name": f"package {node[1]}", "type": "package"}
+        elif tag == 'import_single':
+            return {"name": f"import {node[1]}", "type": "import"}
+        elif tag == 'import_multi':
+            return {
+                "name": "import ( ... )",
+                "type": "import",
+                "children": [self.generate_json_tree(item) for item in node[1]]
+            }
+        elif tag == 'func':
+            children = []
+            if node[2]:
+                children.append({
+                    "name": "Parámetros",
+                    "type": "params",
+                    "children": [{"name": f"{p[0]}: {p[1]}", "type": "param"} for p in node[2]]
+                })
+            if node[4]:
+                children.append(self.generate_json_tree(node[4]))
+            return {
+                "name": f"func {node[1]}() {node[3] or ''}",
+                "type": "function",
+                "children": children
+            }
+        elif tag == 'block':
+            return {
+                "name": "{ Bloque }",
+                "type": "block",
+                "children": [self.generate_json_tree(stmt) for stmt in node[1] if stmt is not None]
+            }
+        elif tag == 'var_init':
+            return {
+                "name": f"var {node[1]} {node[2]} =",
+                "type": "var_decl",
+                "children": [self.generate_json_tree(node[3])]
+            }
+        elif tag == 'short_var':
+            return {
+                "name": f"{node[1]} :=",
+                "type": "short_var",
+                "children": [self.generate_json_tree(node[2])]
+            }
+        elif tag == 'assign':
+            return {
+                "name": f"Asignación ({node[1]})",
+                "type": "assignment",
+                "children": [self.generate_json_tree(node[2]), self.generate_json_tree(node[3])]
+            }
+        elif tag in ('binop', 'relop', 'logop'):
+            return {
+                "name": f"Operación ({node[1]})",
+                "type": "binary_op",
+                "children": [self.generate_json_tree(node[2]), self.generate_json_tree(node[3])]
+            }
+        elif tag == 'unary':
+            return {
+                "name": f"Unario ({node[1]})",
+                "type": "unary_op",
+                "children": [self.generate_json_tree(node[2])]
+            }
+        elif tag == 'lit':
+            return {"name": str(node[1]), "type": "literal"}
+        elif tag == 'call':
+            children = [self.generate_json_tree(node[1])]
+            if node[2]:
+                children.append({
+                    "name": "Argumentos",
+                    "type": "args",
+                    "children": [self.generate_json_tree(arg) for arg in node[2]]
+                })
+            return {"name": "Llamada", "type": "call", "children": children}
+        elif tag == 'call_stmt':
+            return self.generate_json_tree(node[1])
+        elif tag == 'return':
+            children = [self.generate_json_tree(node[1])] if node[1] else []
+            return {"name": "return", "type": "return", "children": children}
+        elif tag in ('if', 'if_else', 'if_else_if'):
+            children = [self.generate_json_tree(node[1]), self.generate_json_tree(node[2])]
+            if len(node) > 3 and node[3]:
+                children.append(self.generate_json_tree(node[3]))
+            return {"name": "if", "type": "if", "children": children}
+        elif tag == 'for_clause':
+            children = [
+                self.generate_json_tree(node[1]),
+                self.generate_json_tree(node[2]),
+                self.generate_json_tree(node[3]),
+                self.generate_json_tree(node[4])
+            ]
+            return {"name": "for (3 cláusulas)", "type": "for", "children": children}
+        elif tag == 'for_cond':
+            return {
+                "name": "for (condición)",
+                "type": "for",
+                "children": [self.generate_json_tree(node[1]), self.generate_json_tree(node[2])]
+            }
+        elif tag == 'for_inf':
+            return {
+                "name": "for { }",
+                "type": "for",
+                "children": [self.generate_json_tree(node[1])]
+            }
+        else:
+            children = [self.generate_json_tree(node[i]) for i in range(1, len(node))]
+            return {"name": str(tag), "type": "node", "children": children}
 
 
 def analyze_syntax(code: str) -> ParseResponse:
@@ -376,8 +861,9 @@ def analyze_syntax(code: str) -> ParseResponse:
             error_index=None
         )
 
+    ast = None
     try:
-        parser.parse(lexer.tokenize(code))
+        ast = parser.parse(lexer.tokenize(code))
     except Exception as e:
         if not parser.error_msg:
             parser.error_msg = f"Estructura sintáctica no válida o no soportada por el analizador: {e}"
@@ -390,9 +876,19 @@ def analyze_syntax(code: str) -> ParseResponse:
             error_index=parser.error_index
         )
 
+    # Generar diagramas del árbol sintáctico
+    ast_mermaid = None
+    ast_json = None
+    if ast is not None:
+        visualizer = ASTVisualizer()
+        ast_mermaid = visualizer.generate_mermaid(ast)
+        ast_json = visualizer.generate_json_tree(ast)
+
     return ParseResponse(
         success=True,
         error_message=None,
         error_line=None,
-        error_index=None
+        error_index=None,
+        ast_mermaid=ast_mermaid,
+        ast_json=ast_json
     )

@@ -155,9 +155,28 @@ class TestGoParser(unittest.TestCase):
         res = analyze_syntax(code)
         self.assertTrue(res.success)
         self.assertIsNone(res.error_message)
+        self.assertIsNotNone(res.ast_mermaid)
+        self.assertTrue(res.ast_mermaid.startswith("graph TD"))
+        self.assertIsNotNone(res.ast_json)
+        self.assertEqual(res.ast_json["type"], "program")
+
+    def test_ast_diagram_generation(self):
+        code = """
+        package main
+        func test(a int) int {
+            return a * 2
+        }
+        """
+        res = analyze_syntax(code)
+        self.assertTrue(res.success)
+        self.assertIsNotNone(res.ast_mermaid)
+        self.assertIn("graph TD", res.ast_mermaid)
+        self.assertIn("Func: test", res.ast_mermaid)
+        self.assertIn("Package: main", res.ast_mermaid)
+        self.assertIsNotNone(res.ast_json)
+        self.assertTrue(len(res.ast_json["children"]) > 0)
 
     def test_invalid_fun_keyword(self):
-        # En Go las funciones deben usar 'func', no 'fun'
         code = """
         fun main() {
             var a string = "a"
@@ -166,6 +185,8 @@ class TestGoParser(unittest.TestCase):
         res = analyze_syntax(code)
         self.assertFalse(res.success)
         self.assertIsNotNone(res.error_message)
+        self.assertIsNone(res.ast_mermaid)
+        self.assertIsNone(res.ast_json)
 
     def test_valid_func_main(self):
         code = """
@@ -176,6 +197,7 @@ class TestGoParser(unittest.TestCase):
         res = analyze_syntax(code)
         self.assertTrue(res.success)
         self.assertIsNone(res.error_message)
+        self.assertIsNotNone(res.ast_mermaid)
 
     def test_invalid_bare_identifiers(self):
         code = "foo bar baz"
@@ -183,7 +205,6 @@ class TestGoParser(unittest.TestCase):
         self.assertFalse(res.success)
 
     def test_control_structures(self):
-        # if-else if-else
         code_if = """
         if x > 100 {
             res = 1
@@ -195,12 +216,11 @@ class TestGoParser(unittest.TestCase):
         """
         res = analyze_syntax(code_if)
         self.assertTrue(res.success)
+        self.assertIsNotNone(res.ast_mermaid)
 
-        # for condition
         code_for_cond = "for total < 1000 { total += 10 }"
         self.assertTrue(analyze_syntax(code_for_cond).success)
 
-        # for infinite
         code_for_inf = "for { breakLoop() }"
         self.assertTrue(analyze_syntax(code_for_inf).success)
 
@@ -216,6 +236,8 @@ class TestGoParser(unittest.TestCase):
         """
         res = analyze_syntax(code)
         self.assertTrue(res.success)
+        self.assertIsNotNone(res.ast_mermaid)
+        self.assertIn("Struct: Persona", res.ast_mermaid)
 
     def test_variable_declarations(self):
         code = """
@@ -228,11 +250,13 @@ class TestGoParser(unittest.TestCase):
         """
         res = analyze_syntax(code)
         self.assertTrue(res.success)
+        self.assertIsNotNone(res.ast_mermaid)
 
     def test_complex_expressions(self):
         code = "val := (a + b) * (c - d) / 2 > 0 && !flag || isReady"
         res = analyze_syntax(code)
         self.assertTrue(res.success)
+        self.assertIsNotNone(res.ast_mermaid)
 
     def test_syntax_error_missing_braces(self):
         code = """

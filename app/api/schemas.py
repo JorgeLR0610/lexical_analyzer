@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 
 class CodeRequest(BaseModel):
     code: str
@@ -18,3 +18,5 @@ class ParseResponse(BaseModel):
     error_message: Optional[str] = None
     error_line: Optional[int] = None
     error_index: Optional[int] = None
+    ast_mermaid: Optional[str] = None
+    ast_json: Optional[dict[str, Any]] = None
