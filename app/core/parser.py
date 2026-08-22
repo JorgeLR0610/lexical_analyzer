@@ -354,6 +354,11 @@ class MyParser(Parser):
     # Manejo de Errores Sintácticos
     # ==========================================
     def error(self, p):
+        # Si ya registramos el primer error sintáctico (el punto de origen exacto de la falla),
+        # no permitir que las cascadas de error recovery secundarias lo sobreescriban
+        if self.error_msg is not None:
+            return
+
         if p:
             self.error_msg = f"Error de sintaxis cerca de '{p.value}' en la línea {p.lineno}"
             self.error_line = p.lineno

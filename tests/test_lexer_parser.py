@@ -204,6 +204,24 @@ class TestGoParser(unittest.TestCase):
         res = analyze_syntax(code)
         self.assertFalse(res.success)
 
+    def test_exact_error_line_reporting(self):
+        code = """package main
+
+import "fmt"
+
+func main() {
+  for i := 0; i < 10; i++ {
+    i i == 5 {
+      fmt.Println("Contador en 5")
+    }
+  }
+}"""
+        res = analyze_syntax(code)
+        self.assertFalse(res.success)
+        self.assertEqual(res.error_line, 7)
+        self.assertIn("cerca de 'i'", res.error_message)
+        self.assertIn("línea 7", res.error_message)
+
     def test_control_structures(self):
         code_if = """
         if x > 100 {

@@ -786,14 +786,21 @@
                         currentIdx += lines[i].length + 1;
                     }
                     
+                    // Extraer longitud del token si está disponible en el mensaje
+                    let errTokenLength = 1;
+                    const match = (data.error_message || '').match(/cerca de '([^']+)'/);
+                    if (match && match[1]) {
+                        errTokenLength = Math.max(match[1].length, 1);
+                    }
+
                     const before = errLineText.substring(0, col);
-                    const errChar = errLineText.substring(col, col+1) || ' ';
-                    const after = errLineText.substring(col+1);
+                    const errToken = errLineText.substring(col, col + errTokenLength) || ' ';
+                    const after = errLineText.substring(col + errToken.length);
                     
                     codeSnippetHtml = `
                         <div class="code-snippet">
                             <div class="line-number">Línea ${data.error_line}</div>
-                            <div class="code-line">${escapeHtml(before)}<mark class="error-highlight">${escapeHtml(errChar)}</mark>${escapeHtml(after)}</div>
+                            <div class="code-line">${escapeHtml(before)}<mark class="error-highlight">${escapeHtml(errToken)}</mark>${escapeHtml(after)}</div>
                         </div>
                     `;
                 }
