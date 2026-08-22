@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador Léxico y Sintáctico para Go</title>
+    <title>Analizador Léxico, Sintáctico y Semántico para Go</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,6 +20,8 @@
             --primary-glow: rgba(0, 173, 216, 0.3);
             --secondary-color: #10b981;
             --secondary-hover: #059669;
+            --semantic-color: #8b5cf6;
+            --semantic-hover: #7c3aed;
             --error-color: #ef4444;
             --error-bg: rgba(239, 68, 68, 0.12);
             --error-border: rgba(239, 68, 68, 0.35);
@@ -155,22 +157,24 @@
 
         .button-group {
             display: flex;
-            gap: 1rem;
+            gap: 0.85rem;
             margin-top: 1.25rem;
+            flex-wrap: wrap;
         }
 
         button {
             display: inline-flex;
             flex: 1;
+            min-width: 140px;
             justify-content: center;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.9rem 1.25rem;
+            padding: 0.85rem 1.15rem;
             background: var(--primary-color);
             color: #0b0f19;
             border: none;
             border-radius: 10px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             letter-spacing: 0.01em;
             cursor: pointer;
@@ -199,11 +203,23 @@
             box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
         }
 
+        button.semantic-btn {
+            background: #8b5cf6;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        button.semantic-btn:hover {
+            background: #7c3aed;
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.45);
+        }
+
         button.outline-btn {
             background: transparent;
             color: #cbd5e1;
             border: 1px solid rgba(255, 255, 255, 0.2);
             flex: 0 0 auto;
+            min-width: 80px;
             box-shadow: none;
         }
 
@@ -249,7 +265,7 @@
             animation: fadeIn 0.3s ease-out forwards;
         }
 
-        #parse-result-container {
+        #parse-result-container, #semantic-result-container {
             display: none;
             animation: fadeIn 0.3s ease-out forwards;
             display: flex;
@@ -287,6 +303,15 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 1.15rem;
+        }
+
+        .error-list {
+            margin: 0.75rem 0 0 0;
+            padding-left: 1.25rem;
+            color: #fca5a5;
+            font-family: var(--mono-font);
+            font-size: 0.9rem;
+            line-height: 1.6;
         }
 
         /* AST Card & Viewer Styles */
@@ -380,8 +405,8 @@
             font-weight: bold;
         }
 
-        /* Token Table */
-        #results-section {
+        /* Token Table and Symbols Table */
+        #results-section, #symbols-section {
             display: none;
             animation: fadeIn 0.4s ease-out forwards;
             padding: 0;
@@ -442,7 +467,7 @@
             background-color: rgba(255, 255, 255, 0.03);
         }
 
-        /* Categorías de insignias de tokens */
+        /* Insignias de tokens */
         .token-badge {
             display: inline-block;
             padding: 0.2rem 0.6rem;
@@ -499,13 +524,57 @@
             color: #cbd5e1;
             border: 1px solid rgba(148, 163, 184, 0.3);
         }
+
+        /* Insignias de la Tabla de Símbolos */
+        .badge-sym-var {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-sym-func {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .badge-sym-param {
+            background: rgba(236, 72, 153, 0.15);
+            color: #f472b6;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+
+        .badge-sym-const {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-sym-pkg {
+            background: rgba(20, 184, 166, 0.15);
+            color: #2dd4bf;
+            border: 1px solid rgba(20, 184, 166, 0.3);
+        }
+
+        .badge-sym-type {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-scope {
+            background: rgba(148, 163, 184, 0.12);
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            font-family: var(--mono-font);
+        }
     </style>
 </head>
 <body>
     <main>
         <div class="header">
-            <h1>Analizador léxico y sintáctico</h1>
-            <p class="subtitle">Analizador léxico y sintáctico para un subconjunto de Go</p>
+            <h1>Analizador léxico, sintáctico y semántico</h1>
+            <p class="subtitle">Analizador léxico, sintáctico y semántico para un subconjunto de Go</p>
         </div>
 
         <div class="glass-panel">
@@ -525,6 +594,10 @@
                     <div class="spinner" id="parse-spinner"></div>
                     <span id="parse-btn-text">Análisis sintáctico</span>
                 </button>
+                <button id="semantic-btn" class="semantic-btn" onclick="analyzeSemantic()">
+                    <div class="spinner" id="semantic-spinner"></div>
+                    <span id="semantic-btn-text">Análisis semántico</span>
+                </button>
                 <button id="clear-btn" class="outline-btn" onclick="clearEditor()" title="Limpiar código">
                     Limpiar
                 </button>
@@ -533,10 +606,12 @@
 
         <div id="error-container"></div>
         <div id="parse-result-container"></div>
+        <div id="semantic-result-container"></div>
 
+        <!-- Tabla de Tokens -->
         <div id="results-section" class="glass-panel">
             <div class="table-header-bar">
-                <span class="table-title">Tokens Identificados</span>
+                <span class="table-title">Tokens identificados</span>
             </div>
             <div class="table-container">
                 <table>
@@ -549,6 +624,28 @@
                     </thead>
                     <tbody id="results-body">
                         <!-- Tokens inyectados dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabla de Símbolos Semánticos -->
+        <div id="symbols-section" class="glass-panel">
+            <div class="table-header-bar">
+                <span class="table-title">Tabla de símbolos</span>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Identificador</th>
+                            <th>Tipo</th>
+                            <th>Ámbito</th>
+                            <th>Línea</th>
+                        </tr>
+                    </thead>
+                    <tbody id="symbols-body">
+                        <!-- Símbolos inyectados dinámicamente -->
                     </tbody>
                 </table>
             </div>
@@ -615,8 +712,11 @@
         function hideAllResults() {
             document.getElementById('error-container').style.display = 'none';
             document.getElementById('results-section').style.display = 'none';
+            document.getElementById('symbols-section').style.display = 'none';
             document.getElementById('parse-result-container').style.display = 'none';
+            document.getElementById('semantic-result-container').style.display = 'none';
             document.getElementById('results-body').innerHTML = '';
+            document.getElementById('symbols-body').innerHTML = '';
         }
 
         function classifyToken(tokenName) {
@@ -630,6 +730,17 @@
             if (['ASIGN', 'ASIGN_CORTA', 'ASSIGN', 'ASSIGN_DEF', 'AND', 'OR', 'INC', 'DEC', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN'].includes(name)) return 'badge-operator';
             if (['DELIMITADOR', '(', ')', '{', '}', '[', ']', ',', ';', ':', '.', '!'].includes(tokenName) || name === 'DELIMITADOR') return 'badge-delimiter';
             return 'badge-keyword';
+        }
+
+        function classifySymbol(symbolType) {
+            const type = (symbolType || '').toLowerCase();
+            if (type.includes('variable')) return 'badge-sym-var';
+            if (type.includes('función') || type.includes('func')) return 'badge-sym-func';
+            if (type.includes('parámetro') || type.includes('param')) return 'badge-sym-param';
+            if (type.includes('constante') || type.includes('const')) return 'badge-sym-const';
+            if (type.includes('paquete') || type.includes('package')) return 'badge-sym-pkg';
+            if (type.includes('tipo') || type.includes('type') || type.includes('struct')) return 'badge-sym-type';
+            return 'badge-sym-var';
         }
 
         async function analyzeCode() {
@@ -683,7 +794,7 @@
                 showError(error.message);
             } finally {
                 analyzeBtn.classList.remove('loading');
-                document.getElementById('btn-text').textContent = 'Análisis Léxico';
+                document.getElementById('btn-text').textContent = 'Análisis léxico';
             }
         }
 
@@ -719,7 +830,43 @@
                 showError(error.message);
             } finally {
                 parseBtn.classList.remove('loading');
-                document.getElementById('parse-btn-text').textContent = 'Análisis Sintáctico';
+                document.getElementById('parse-btn-text').textContent = 'Análisis sintáctico';
+            }
+        }
+
+        async function analyzeSemantic() {
+            const codeInput = textarea.value;
+            const semanticBtn = document.getElementById('semantic-btn');
+            
+            if (!codeInput.trim()) {
+                showError("El bloque de código no puede estar vacío.");
+                return;
+            }
+
+            hideAllResults();
+            semanticBtn.classList.add('loading');
+            document.getElementById('semantic-btn-text').textContent = 'Analizando...';
+
+            try {
+                const response = await fetch('/semantic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Error al comunicarse con el servidor");
+                }
+
+                const data = await response.json();
+                displaySemanticResult(data);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                semanticBtn.classList.remove('loading');
+                document.getElementById('semantic-btn-text').textContent = 'Análisis semántico';
             }
         }
 
@@ -736,7 +883,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                         Sintaxis correcta
                     </h3>
-                    <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
+                    <!-- <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p> -->
                 `;
                 container.appendChild(successDiv);
 
@@ -813,6 +960,58 @@
                         </h3>
                         <p style="margin:0; color:#cbd5e1;">${escapeHtml(data.error_message)}</p>
                         ${codeSnippetHtml}
+                    </div>
+                `;
+            }
+        }
+
+        function displaySemanticResult(data) {
+            const container = document.getElementById('semantic-result-container');
+            container.style.display = 'flex';
+            container.innerHTML = '';
+            
+            if (data.success) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-card';
+                successDiv.innerHTML = `
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Semántica correcta
+                    </h3>
+                    <!-- <p style="margin:0; color:#cbd5e1;">No se encontraron errores de redeclaración ni variables no declaradas.</p> -->
+                `;
+                container.appendChild(successDiv);
+
+                // Poblar y mostrar tabla de símbolos
+                if (data.symbols && data.symbols.length > 0) {
+                    const symbolsBody = document.getElementById('symbols-body');
+                    symbolsBody.innerHTML = '';
+                    data.symbols.forEach(sym => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td style="font-weight: 600; color: #ffffff;">${escapeHtml(sym.name)}</td>
+                            <td><span class="token-badge badge-type">${escapeHtml(sym.data_type)}</span></td>
+                            <td><span class="token-badge badge-scope">${escapeHtml(sym.scope)}</span></td>
+                            <td style="color: #94a3b8; font-family: var(--mono-font);">${sym.line !== null && sym.line !== undefined ? sym.line : '-'}</td>
+                        `;
+                        symbolsBody.appendChild(row);
+                    });
+                    document.getElementById('symbols-section').style.display = 'block';
+                }
+            } else {
+                let errorItemsHtml = '';
+                if (data.errors && data.errors.length > 0) {
+                    errorItemsHtml = `<ul class="error-list">` + data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('') + `</ul>`;
+                }
+
+                container.innerHTML = `
+                    <div class="error-card">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            Error semántico detectado
+                        </h3>
+                        <p style="margin:0; color:#cbd5e1;">Se encontraron errores semánticos en las declaraciones o uso de identificadores:</p>
+                        ${errorItemsHtml}
                     </div>
                 `;
             }

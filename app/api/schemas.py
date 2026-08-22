@@ -20,3 +20,14 @@ class ParseResponse(BaseModel):
     error_index: Optional[int] = None
     ast_mermaid: Optional[str] = None
     ast_json: Optional[dict[str, Any]] = None
+
+class SymbolResponse(BaseModel):
+    name: str
+    data_type: str
+    scope: str
+    line: Optional[int] = None
+
+class SemanticResponse(BaseModel):
+    success: bool
+    errors: list[str]
+    symbols: list[SymbolResponse]
