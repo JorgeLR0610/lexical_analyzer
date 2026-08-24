@@ -4,7 +4,7 @@ import uvicorn
 from api.routes import router as lexer_router
 from pathlib import Path
 
-app = FastAPI(title="Analizador léxico")
+app = FastAPI(title="Analizador léxico y sintáctico para Go")
 
 app.include_router(lexer_router)
 
