@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador Léxico, Sintáctico y Semántico para Go</title>
+    <title>Compilador Go: Léxico, Sintáctico, Semántico y Código Intermedio (IR)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,6 +22,8 @@
             --secondary-hover: #059669;
             --semantic-color: #8b5cf6;
             --semantic-hover: #7c3aed;
+            --ir-color: #f59e0b;
+            --ir-hover: #d97706;
             --error-color: #ef4444;
             --error-bg: rgba(239, 68, 68, 0.12);
             --error-border: rgba(239, 68, 68, 0.35);
@@ -50,8 +52,8 @@
 
         main {
             width: 100%;
-            max-width: 960px;
-            padding: 3rem 1.5rem;
+            max-width: 980px;
+            padding: 2.5rem 1.5rem;
             display: flex;
             flex-direction: column;
             gap: 1.75rem;
@@ -68,16 +70,16 @@
         h1 {
             font-weight: 800;
             margin: 0;
-            font-size: 2.4rem;
+            font-size: 2.3rem;
             letter-spacing: -0.03em;
             color: #ffffff;
         }
 
         p.subtitle {
             color: var(--text-muted);
-            font-size: 1.05rem;
+            font-size: 1rem;
             margin: 0;
-            max-width: 620px;
+            max-width: 680px;
             line-height: 1.5;
         }
 
@@ -157,7 +159,7 @@
 
         .button-group {
             display: flex;
-            gap: 0.85rem;
+            gap: 0.75rem;
             margin-top: 1.25rem;
             flex-wrap: wrap;
         }
@@ -165,16 +167,16 @@
         button {
             display: inline-flex;
             flex: 1;
-            min-width: 140px;
+            min-width: 130px;
             justify-content: center;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.85rem 1.15rem;
+            padding: 0.8rem 1rem;
             background: var(--primary-color);
             color: #0b0f19;
             border: none;
             border-radius: 10px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 700;
             letter-spacing: 0.01em;
             cursor: pointer;
@@ -214,6 +216,18 @@
             box-shadow: 0 6px 16px rgba(139, 92, 246, 0.45);
         }
 
+        button.ir-btn {
+            background: #f59e0b;
+            color: #0b0f19;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        button.ir-btn:hover {
+            background: #d97706;
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
+        }
+
         button.outline-btn {
             background: transparent;
             color: #cbd5e1;
@@ -231,8 +245,8 @@
 
         .spinner {
             display: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border: 2px solid rgba(0, 0, 0, 0.2);
             border-radius: 50%;
             border-top-color: currentColor;
@@ -265,7 +279,7 @@
             animation: fadeIn 0.3s ease-out forwards;
         }
 
-        #parse-result-container, #semantic-result-container {
+        #parse-result-container, #semantic-result-container, #ir-result-container {
             display: none;
             animation: fadeIn 0.3s ease-out forwards;
             display: flex;
@@ -315,7 +329,7 @@
         }
 
         /* AST Card & Viewer Styles */
-        .ast-card {
+        .ast-card, .ir-card {
             background: var(--container-bg);
             backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
@@ -327,7 +341,7 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
         }
 
-        .ast-header-bar {
+        .section-header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -335,7 +349,7 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .ast-title {
+        .section-title {
             font-weight: 700;
             font-size: 1.15rem;
             color: #ffffff;
@@ -405,7 +419,7 @@
             font-weight: bold;
         }
 
-        /* Token Table and Symbols Table */
+        /* Token Table, Symbols Table, Quadruples Table */
         #results-section, #symbols-section {
             display: none;
             animation: fadeIn 0.4s ease-out forwards;
@@ -525,56 +539,94 @@
             border: 1px solid rgba(148, 163, 184, 0.3);
         }
 
-        /* Insignias de la Tabla de Símbolos */
-        .badge-sym-var {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-
-        .badge-sym-func {
-            background: rgba(139, 92, 246, 0.15);
-            color: #a78bfa;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-        }
-
-        .badge-sym-param {
-            background: rgba(236, 72, 153, 0.15);
-            color: #f472b6;
-            border: 1px solid rgba(236, 72, 153, 0.3);
-        }
-
-        .badge-sym-const {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        .badge-sym-pkg {
-            background: rgba(20, 184, 166, 0.15);
-            color: #2dd4bf;
-            border: 1px solid rgba(20, 184, 166, 0.3);
-        }
-
-        .badge-sym-type {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
         .badge-scope {
             background: rgba(148, 163, 184, 0.12);
             color: #e2e8f0;
             border: 1px solid rgba(148, 163, 184, 0.25);
             font-family: var(--mono-font);
         }
+
+        .badge-temp {
+            background: rgba(245, 158, 11, 0.18);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+
+        .badge-label {
+            background: rgba(236, 72, 153, 0.18);
+            color: #f472b6;
+            border: 1px solid rgba(236, 72, 153, 0.35);
+        }
+
+        /* TAC Code View Box */
+        .tac-box {
+            background: #060911;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            font-family: var(--mono-font);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: #f1f5f9;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .tac-box .tac-label {
+            color: #f472b6;
+            font-weight: 600;
+        }
+
+        .tac-box .tac-temp {
+            color: #fbbf24;
+        }
+
+        .tac-box .tac-kw {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .tac-box .tac-op {
+            color: #818cf8;
+        }
+
+        /* Postfix Cards Grid */
+        .postfix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .postfix-item {
+            background: #070b14;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .postfix-infix {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-family: var(--mono-font);
+        }
+
+        .postfix-rpn {
+            color: #2dd4bf;
+            font-size: 1.05rem;
+            font-weight: 600;
+            font-family: var(--mono-font);
+            letter-spacing: 0.04em;
+        }
     </style>
 </head>
 <body>
     <main>
         <div class="header">
-            <h1>Analizador léxico, sintáctico y semántico</h1>
-            <p class="subtitle">Analizador léxico, sintáctico y semántico para un subconjunto de Go</p>
+            <h1>Compilador Go</h1>
+            <p class="subtitle">Analizador léxico, sintáctico, semántico y generador de código intermedio (IR - Unidad 2)</p>
         </div>
 
         <div class="glass-panel">
@@ -598,6 +650,10 @@
                     <div class="spinner" id="semantic-spinner"></div>
                     <span id="semantic-btn-text">Análisis semántico</span>
                 </button>
+                <button id="ir-btn" class="ir-btn" onclick="analyzeIR()">
+                    <div class="spinner" id="ir-spinner"></div>
+                    <span id="ir-btn-text">Código intermedio (IR)</span>
+                </button>
                 <button id="clear-btn" class="outline-btn" onclick="clearEditor()" title="Limpiar código">
                     Limpiar
                 </button>
@@ -607,6 +663,7 @@
         <div id="error-container"></div>
         <div id="parse-result-container"></div>
         <div id="semantic-result-container"></div>
+        <div id="ir-result-container"></div>
 
         <!-- Tabla de Tokens -->
         <div id="results-section" class="glass-panel">
@@ -715,6 +772,7 @@
             document.getElementById('symbols-section').style.display = 'none';
             document.getElementById('parse-result-container').style.display = 'none';
             document.getElementById('semantic-result-container').style.display = 'none';
+            document.getElementById('ir-result-container').style.display = 'none';
             document.getElementById('results-body').innerHTML = '';
             document.getElementById('symbols-body').innerHTML = '';
         }
@@ -730,17 +788,6 @@
             if (['ASIGN', 'ASIGN_CORTA', 'ASSIGN', 'ASSIGN_DEF', 'AND', 'OR', 'INC', 'DEC', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN'].includes(name)) return 'badge-operator';
             if (['DELIMITADOR', '(', ')', '{', '}', '[', ']', ',', ';', ':', '.', '!'].includes(tokenName) || name === 'DELIMITADOR') return 'badge-delimiter';
             return 'badge-keyword';
-        }
-
-        function classifySymbol(symbolType) {
-            const type = (symbolType || '').toLowerCase();
-            if (type.includes('variable')) return 'badge-sym-var';
-            if (type.includes('función') || type.includes('func')) return 'badge-sym-func';
-            if (type.includes('parámetro') || type.includes('param')) return 'badge-sym-param';
-            if (type.includes('constante') || type.includes('const')) return 'badge-sym-const';
-            if (type.includes('paquete') || type.includes('package')) return 'badge-sym-pkg';
-            if (type.includes('tipo') || type.includes('type') || type.includes('struct')) return 'badge-sym-type';
-            return 'badge-sym-var';
         }
 
         async function analyzeCode() {
@@ -824,7 +871,7 @@
                 }
 
                 const data = await response.json();
-                displaySyntaxResult(data, codeInput);
+                await displaySyntaxResult(data, codeInput);
                 
             } catch (error) {
                 showError(error.message);
@@ -870,6 +917,42 @@
             }
         }
 
+        async function analyzeIR() {
+            const codeInput = textarea.value;
+            const irBtn = document.getElementById('ir-btn');
+            
+            if (!codeInput.trim()) {
+                showError("El bloque de código no puede estar vacío.");
+                return;
+            }
+
+            hideAllResults();
+            irBtn.classList.add('loading');
+            document.getElementById('ir-btn-text').textContent = 'Generando...';
+
+            try {
+                const response = await fetch('/ir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Error al comunicarse con el servidor");
+                }
+
+                const data = await response.json();
+                displayIRResult(data);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                irBtn.classList.remove('loading');
+                document.getElementById('ir-btn-text').textContent = 'Código intermedio (IR)';
+            }
+        }
+
         async function displaySyntaxResult(data, originalCode) {
             const container = document.getElementById('parse-result-container');
             container.style.display = 'flex';
@@ -883,17 +966,16 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                         Sintaxis correcta
                     </h3>
-                    <!-- <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p> -->
+                    <p style="margin:0; color:#cbd5e1;">El bloque de código introducido es estructuralmente válido.</p>
                 `;
                 container.appendChild(successDiv);
 
-                // Si se generó el árbol sintáctico (AST), mostrar directamente el panel de visualización
                 if (data.ast_mermaid) {
                     const astCard = document.createElement('div');
                     astCard.className = 'ast-card';
                     astCard.innerHTML = `
-                        <div class="ast-header-bar">
-                            <div class="ast-title">
+                        <div class="section-header-bar">
+                            <div class="section-title">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00add8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                                 Árbol sintáctico
                             </div>
@@ -904,7 +986,6 @@
                     `;
                     container.appendChild(astCard);
 
-                    // Renderizar diagrama Mermaid directamente
                     if (window.mermaid) {
                         try {
                             const renderArea = document.getElementById('mermaid-render-area');
@@ -933,7 +1014,6 @@
                         currentIdx += lines[i].length + 1;
                     }
                     
-                    // Extraer longitud del token si está disponible en el mensaje
                     let errTokenLength = 1;
                     const match = (data.error_message || '').match(/cerca de '([^']+)'/);
                     if (match && match[1]) {
@@ -978,11 +1058,10 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                         Semántica correcta
                     </h3>
-                    <!-- <p style="margin:0; color:#cbd5e1;">No se encontraron errores de redeclaración ni variables no declaradas.</p> -->
+                    <p style="margin:0; color:#cbd5e1;">No se encontraron errores de tipo, redeclaración ni variables no declaradas.</p>
                 `;
                 container.appendChild(successDiv);
 
-                // Poblar y mostrar tabla de símbolos
                 if (data.symbols && data.symbols.length > 0) {
                     const symbolsBody = document.getElementById('symbols-body');
                     symbolsBody.innerHTML = '';
@@ -1011,6 +1090,142 @@
                             Error semántico detectado
                         </h3>
                         <p style="margin:0; color:#cbd5e1;">Se encontraron errores semánticos en las declaraciones o uso de identificadores:</p>
+                        ${errorItemsHtml}
+                    </div>
+                `;
+            }
+        }
+
+        function highlightTac(code) {
+            return escapeHtml(code)
+                .replace(/\b(func|endfunc|goto|ifFalse|ifTrue|param|call|return)\b/g, '<span class="tac-kw">$1</span>')
+                .replace(/\b(L\d+):/g, '<span class="tac-label">$1:</span>')
+                .replace(/\b(L\d+)\b/g, '<span class="tac-label">$1</span>')
+                .replace(/\b(t\d+)\b/g, '<span class="tac-temp">$1</span>');
+        }
+
+        function displayIRResult(data) {
+            const container = document.getElementById('ir-result-container');
+            container.style.display = 'flex';
+            container.innerHTML = '';
+
+            if (data.success) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-card';
+                successDiv.innerHTML = `
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Código intermedio generado exitosamente (IR - Unidad 2)
+                    </h3>
+                    <p style="margin:0; color:#cbd5e1;">Se ha generado la representación intermedia en formatos: Código de Tres Direcciones (TAC), Cuádruplos/Triplos y Notación Postfija.</p>
+                `;
+                container.appendChild(successDiv);
+
+                // 1. Panel de Código de Tres Direcciones (TAC)
+                const tacCard = document.createElement('div');
+                tacCard.className = 'ir-card';
+                tacCard.innerHTML = `
+                    <div class="section-header-bar">
+                        <div class="section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Código de tres direcciones (TAC)
+                        </div>
+                    </div>
+                    <div class="tac-box">${highlightTac(data.tac_code || '')}</div>
+                `;
+                container.appendChild(tacCard);
+
+                // 2. Tabla de Cuádruplos y Triplos
+                if (data.quadruples && data.quadruples.length > 0) {
+                    const quadsCard = document.createElement('div');
+                    quadsCard.className = 'ir-card';
+                    
+                    let rowsHtml = '';
+                    data.quadruples.forEach(q => {
+                        let opBadge = `<span class="token-badge badge-operator">${escapeHtml(q.op)}</span>`;
+                        let resBadge = q.result.startsWith('t') ? `<span class="token-badge badge-temp">${escapeHtml(q.result)}</span>` : 
+                                      (q.result.startsWith('L') ? `<span class="token-badge badge-label">${escapeHtml(q.result)}</span>` : escapeHtml(q.result));
+                        
+                        rowsHtml += `
+                            <tr>
+                                <td style="color: #94a3b8; font-weight: 600;">#${q.index}</td>
+                                <td>${opBadge}</td>
+                                <td>${escapeHtml(q.arg1 || '-')}</td>
+                                <td>${escapeHtml(q.arg2 || '-')}</td>
+                                <td>${resBadge || '-'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    quadsCard.innerHTML = `
+                        <div class="section-header-bar">
+                            <div class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00add8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+                                Tabla de cuádruplos y triplos (#, op, arg1, arg2, res)
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Operador</th>
+                                        <th>Argumento 1</th>
+                                        <th>Argumento 2</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    container.appendChild(quadsCard);
+                }
+
+                // 3. Panel de Notación Postfija (RPN)
+                if (data.postfix_expressions && data.postfix_expressions.length > 0) {
+                    const postCard = document.createElement('div');
+                    postCard.className = 'ir-card';
+                    
+                    let postGridHtml = '';
+                    data.postfix_expressions.forEach(p => {
+                        postGridHtml += `
+                            <div class="postfix-item">
+                                <span class="postfix-infix">Infija: ${escapeHtml(p.infix)}</span>
+                                <span class="postfix-rpn">Postfija: ${escapeHtml(p.postfix)}</span>
+                            </div>
+                        `;
+                    });
+
+                    postCard.innerHTML = `
+                        <div class="section-header-bar">
+                            <div class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Notación postfija (Recorrido postorden del AST)
+                            </div>
+                        </div>
+                        <div class="postfix-grid">
+                            ${postGridHtml}
+                        </div>
+                    `;
+                    container.appendChild(postCard);
+                }
+
+            } else {
+                let errorItemsHtml = '';
+                if (data.errors && data.errors.length > 0) {
+                    errorItemsHtml = `<ul class="error-list">` + data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('') + `</ul>`;
+                }
+
+                container.innerHTML = `
+                    <div class="error-card">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            No se pudo generar el código intermedio
+                        </h3>
+                        <p style="margin:0; color:#cbd5e1;">El código presenta inconsistencias que deben corregirse antes de generar la representación intermedia:</p>
                         ${errorItemsHtml}
                     </div>
                 `;

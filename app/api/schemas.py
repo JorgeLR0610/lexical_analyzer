@@ -31,3 +31,23 @@ class SemanticResponse(BaseModel):
     success: bool
     errors: list[str]
     symbols: list[SymbolResponse]
+
+class QuadrupleResponse(BaseModel):
+    index: int
+    op: str
+    arg1: str
+    arg2: str
+    result: str
+    formatted: str
+
+class PostfixItemResponse(BaseModel):
+    infix: str
+    postfix: str
+
+class IRResponse(BaseModel):
+    success: bool
+    errors: list[str]
+    tac_code: Optional[str] = None
+    triples: list[str] = []
+    quadruples: list[QuadrupleResponse] = []
+    postfix_expressions: list[PostfixItemResponse] = []
