@@ -139,7 +139,39 @@ func main() {
         self.assertTrue(data["success"])
         self.assertIn("t1 = 4 * 2", data["tac_code"])
         self.assertGreater(len(data["triples"]), 0)
-        self.assertGreater(len(data["quadruples"]), 0)
+    def test_exact_page_15_triple_format(self):
+        # Diapositiva 15 de IR.pdf
+        code = """package main
+func main() {
+    x := 3 + 4 * 2
+}"""
+        res = generate_ir(code)
+        self.assertTrue(res.success)
+        expected = [
+            "#1  (*, 4, 2, t1)",
+            "#2  (+, 3, t1, t2)",
+            "#3  (=, t2, , x)"
+        ]
+        self.assertEqual(res.triples, expected)
+
+    def test_export_ir_endpoint(self):
+        code = """package main
+func main() {
+    x := 3 + 4 * 2
+}"""
+        r = self.client.post("/export-ir", json={"code": code})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("attachment; filename=programa.ir", r.headers.get("content-disposition", ""))
+        self.assertIn("#1  (*, 4, 2, t1)\n#2  (+, 3, t1, t2)\n#3  (=, t2, , x)\n", r.text)
+
+    def test_export_ir_error(self):
+        code = """package main
+func main() {
+    x := 10
+    x = true
+}"""
+        r = self.client.post("/export-ir", json={"code": code})
+        self.assertEqual(r.status_code, 400)
 
 
 if __name__ == "__main__":

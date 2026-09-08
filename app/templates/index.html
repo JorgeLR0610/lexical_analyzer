@@ -228,6 +228,30 @@
             box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
         }
 
+        .download-ir-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.9rem;
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            min-width: auto;
+            flex: 0 0 auto;
+        }
+
+        .download-ir-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
+        }
+
         button.outline-btn {
             background: transparent;
             color: #cbd5e1;
@@ -1104,7 +1128,10 @@
                 .replace(/\b(t\d+)\b/g, '<span class="tac-temp">$1</span>');
         }
 
+        let lastIRData = null;
+
         function displayIRResult(data) {
+            lastIRData = data;
             const container = document.getElementById('ir-result-container');
             container.style.display = 'flex';
             container.innerHTML = '';
@@ -1115,7 +1142,7 @@
                 successDiv.innerHTML = `
                     <h3>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        Código intermedio generado exitosamente (IR - Unidad 2)
+                        Código intermedio generado.
                     </h3>
                     <p style="margin:0; color:#cbd5e1;">Se ha generado la representación intermedia en formatos: Código de Tres Direcciones (TAC), Cuádruplos/Triplos y Notación Postfija.</p>
                 `;
@@ -1163,6 +1190,10 @@
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00add8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
                                 Tabla de cuádruplos y triplos (#, op, arg1, arg2, res)
                             </div>
+                            <button id="download-ir-btn" class="download-ir-btn" onclick="downloadIRFile()" title="Guardar archivo .ir con formato de página 15 de IR.pdf">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Guardar archivo .ir</span>
+                            </button>
                         </div>
                         <div class="table-container">
                             <table>
@@ -1230,6 +1261,23 @@
                     </div>
                 `;
             }
+        }
+
+        function downloadIRFile() {
+            if (!lastIRData || !lastIRData.triples || lastIRData.triples.length === 0) {
+                showError("No hay código intermedio generado para guardar.");
+                return;
+            }
+            const content = lastIRData.triples.join('\n') + '\n';
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'programa.ir';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function showError(message) {

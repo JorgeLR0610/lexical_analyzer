@@ -15,9 +15,11 @@ class Quadruple:
         self.result = str(result) if result is not None else ""
 
     def to_triple_str(self) -> str:
-        # Formato .ir del curso: #1  (*, 4, 2, t1)
+        # Formato .ir del curso (página 15 de IR.pdf): #1  (*, 4, 2, t1)
+        a1 = self.arg1 if self.arg1 else ""
         a2 = self.arg2 if self.arg2 else ""
-        return f"#{self.index:<2} ({self.op}, {self.arg1}, {a2}, {self.result})"
+        res = self.result if self.result else ""
+        return f"#{self.index}  ({self.op}, {a1}, {a2}, {res})"
 
     def to_tac_str(self) -> str:
         # Formato Three-Address Code (TAC)
@@ -109,10 +111,12 @@ class IRGenerator:
     def _gen_func(self, node):
         name = node[1]
         block = node[4]
-        self.emit('func_begin', result=name)
+        if name != 'main':
+            self.emit('func_begin', result=name)
         if block:
             self._gen_block(block)
-        self.emit('func_end')
+        if name != 'main':
+            self.emit('func_end')
 
     def _gen_block(self, block_node):
         if not block_node or not isinstance(block_node, tuple) or block_node[0] != 'block':
