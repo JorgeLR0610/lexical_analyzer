@@ -1,4 +1,4 @@
-#type: ignore
+# type: ignore
 import logging
 from sly import Parser
 from core.lexer import MyLexer
@@ -27,7 +27,7 @@ class MyParser(Parser):
         self.error_index = None
 
     # ==========================================
-    # Estructura Principal / Programa
+    # Estructura principal del programa
     # ==========================================
     @_('top_level_list')
     def program(self, p):
@@ -45,18 +45,18 @@ class MyParser(Parser):
     def top_level_list(self, p):
         return [p.top_level]
 
-    # Declaraciones válidas a nivel superior
+    # Declaraciones válidas del nivel superior del programa 
     @_('package_decl', 'import_decl', 'func_decl', 'type_decl', 'var_decl', 'const_decl',
        'short_var_decl', 'assignment_stmt', 'inc_dec_stmt', 'if_stmt', 'for_stmt', 'call_stmt', 'semi_stmt')
     def top_level(self, p):
         return p[0]
 
-    # Declaración de Paquete: package main
+    # Declaración de paquete, como el package main
     @_('PACKAGE ID')
     def package_decl(self, p):
         return ('package', p.ID)
 
-    # Declaración de Importaciones: import "fmt" o import ( "fmt" "os" )
+    # Declaración de imports: import "fmt" o import ( "fmt" "os" )
     @_('IMPORT STRING_LIT')
     def import_decl(self, p):
         return ('import_single', p.STRING_LIT)
@@ -81,7 +81,7 @@ class MyParser(Parser):
     def import_spec(self, p):
         return (p.ID, p.STRING_LIT)
 
-    # Declaración de Funciones: func sumar(a int, b int) int { ... }
+    # Declaración de funciones: func sumar(a int, b int) int {...}
     @_('FUNC ID "(" param_list ")" type_spec block')
     def func_decl(self, p):
         return ('func', p.ID, p.param_list, p.type_spec, p.block)
@@ -111,7 +111,7 @@ class MyParser(Parser):
     def param(self, p):
         return (p.ID, p.type_spec)
 
-    # Especificación de Tipos (primitivos TYPE o personalizados ID, []type, *type)
+    # Especificación de tipos (primitivos o variables, []type (slices), *type (punteros))
     @_('TYPE', 'ID')
     def type_spec(self, p):
         return p[0]
@@ -124,7 +124,7 @@ class MyParser(Parser):
     def type_spec(self, p):
         return ('ptr_type', p.type_spec)
 
-    # Declaración de Tipos y Structs: type Persona struct { ... }
+    # Declaración de tipos y structs: type Persona struct { ... }
     @_('TYPE_KW ID STRUCT "{" struct_field_list "}"')
     def type_decl(self, p):
         return ('type_struct', p.ID, p.struct_field_list)
@@ -150,7 +150,7 @@ class MyParser(Parser):
         return ('field', p.ID, p.type_spec)
 
     # ==========================================
-    # Bloques y Sentencias
+    # Bloques y sentencias
     # ==========================================
     @_('"{" statement_list "}"')
     def block(self, p):
@@ -179,7 +179,7 @@ class MyParser(Parser):
     def semi_stmt(self, p):
         return ('empty_stmt',)
 
-    # Declaraciones de Variables (con ASSIGN)
+    # Declaraciones de variables (con el op de asignación que nombré como ASSIGN)
     @_('VAR ID type_spec ASSIGN expr')
     def var_decl(self, p):
         return ('var_init', p.ID, p.type_spec, p.expr)
@@ -192,7 +192,7 @@ class MyParser(Parser):
     def var_decl(self, p):
         return ('var_inferred', p.ID, p.expr)
 
-    # Declaraciones de Constantes (con ASSIGN)
+    # Declaraciones de constantes (con ASSIGN)
     @_('CONST ID type_spec ASSIGN expr')
     def const_decl(self, p):
         return ('const_typed', p.ID, p.type_spec, p.expr)
@@ -201,7 +201,7 @@ class MyParser(Parser):
     def const_decl(self, p):
         return ('const_inferred', p.ID, p.expr)
 
-    # Declaración Corta de Variables: x := 10
+    # Declaración corta de variables: x := 10
     @_('ID ASSIGN_DEF expr')
     def short_var_decl(self, p):
         return ('short_var', p.ID, p.expr)
@@ -218,7 +218,7 @@ class MyParser(Parser):
     def assignment_stmt(self, p):
         return ('assign', p[1], p.expr0, p.expr1)
 
-    # Incremento y Decremento: x++, x--
+    # Incremento y decremento: x++, x--
     @_('expr INC')
     def inc_dec_stmt(self, p):
         return ('inc', p.expr)
@@ -227,12 +227,12 @@ class MyParser(Parser):
     def inc_dec_stmt(self, p):
         return ('dec', p.expr)
 
-    # Sentencia de llamada a función / método (única sentencia de expresión válida en Go)
+    # Llamada a función / método
     @_('call_expr')
     def call_stmt(self, p):
         return ('call_stmt', p.call_expr)
 
-    # Sentencias Simples (utilizadas en encabezados de if / for)
+    # Sentencias simples como las de if o for
     @_('short_var_decl', 'assignment_stmt', 'inc_dec_stmt', 'call_expr')
     def simple_stmt(self, p):
         return p[0]
@@ -262,7 +262,7 @@ class MyParser(Parser):
     def if_stmt(self, p):
         return ('if_with_init_else_if', p.simple_stmt, p.expr, p.block, p.if_stmt)
 
-    # Bucles FOR (Infinito, Condicional tipo While, y de 3 componentes)
+    # Bucles FOR (infinito, condicional tipo while, y de 3 componentes)
     @_('FOR block')
     def for_stmt(self, p):
         return ('for_inf', p.block)
@@ -275,7 +275,7 @@ class MyParser(Parser):
     def for_stmt(self, p):
         return ('for_clause', p.simple_stmt0, p.expr, p.simple_stmt1, p.block)
 
-    # Sentencia de Retorno
+    # Sentencia de retorno
     @_('RETURN expr')
     def return_stmt(self, p):
         return ('return', p.expr)
@@ -285,7 +285,7 @@ class MyParser(Parser):
         return ('return', None)
 
     # ==========================================
-    # Expresiones y Operadores
+    # Expresiones y operadores
     # ==========================================
     @_('expr "+" expr',
        'expr "-" expr',
@@ -351,11 +351,10 @@ class MyParser(Parser):
         pass
 
     # ==========================================
-    # Manejo de Errores Sintácticos
+    # Manejo de errores sintácticos
     # ==========================================
     def error(self, p):
-        # Si ya registramos el primer error sintáctico (el punto de origen exacto de la falla),
-        # no permitir que las cascadas de error recovery secundarias lo sobreescriban
+        # Si ya registramos el primer error sintáctico (particularmente, el lugar exacto donde está el error), no permitir que los siguientes errores lo sobreescriban
         if self.error_msg is not None:
             return
 
@@ -370,7 +369,7 @@ class MyParser(Parser):
 
 
 # ==========================================
-# Visualizador del Árbol Sintáctico (AST)
+# Visualizador del árbol sintáctico (AST)
 # ==========================================
 class ASTVisualizer:
     def __init__(self):

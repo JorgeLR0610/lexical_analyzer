@@ -32,7 +32,7 @@ class MyLexer(Lexer):
     def ignore_block_comment(self, t):
         self.lineno += t.value.count('\n')
 
-    # Comentario de una sola línea: // ...
+    # Comentario de una sola línea: //
     ignore_comment = r'//.*'
 
     # Operadores compuestos (el orden de definición importa)
@@ -92,16 +92,16 @@ class MyLexer(Lexer):
     # Literales enteros
     INT_LIT = r'\d+'
 
-    # Literales de cadena (comillas dobles o comillas invertidas)
+    # Literales de strings (comillas dobles o comillas invertidas)
     @_(r'\"([^\\\n]|(\\.))*\"|`[^`]*`')
     def STRING_LIT(self, t):
         self.lineno += t.value.count('\n')
         return t
 
-    # Catch all para todos los identificadores y palabras clave
+    # Resto de identificadores y palabras clave
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
 
-    # Separar ids de las palabras reservadas
+    # Separar las palabras reservadas
     ID['package'] = PACKAGE
     ID['import'] = IMPORT
     ID['func'] = FUNC

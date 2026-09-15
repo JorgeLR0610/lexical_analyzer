@@ -121,7 +121,7 @@ class SemanticAnalyzer:
 
         top_levels = ast[1]
 
-        # Paso 1: Declaraciones a nivel global (paquete, imports, structs y firmas de funciones)
+        # Declaraciones a nivel global (paquete, imports, structs y firmas de funciones)
         for item in top_levels:
             if not isinstance(item, tuple):
                 continue
@@ -151,7 +151,7 @@ class SemanticAnalyzer:
                 func_type = f"func({','.join(param_types)})->{ret}"
                 self._record_symbol(self.global_scope, item[1], func_type, line)
 
-        # Paso 2: Análisis de cuerpos de funciones, variables globales y verificación de tipos
+        # Análisis de funciones, variables globales y verificación de tipos
         for item in top_levels:
             if not isinstance(item, tuple):
                 continue
@@ -179,7 +179,7 @@ class SemanticAnalyzer:
                 if block:
                     self._analyze_block(block, func_scope)
 
-                # Si la función declara un tipo de retorno (no void) y no contiene sentencia return
+                # Si la función declara un tipo de retorno (es decir, no es void) y no contiene sentencia return
                 if ret_type != "void":
                     if not self._has_return_statement(block):
                         self.errors.append(f"Error semántico en línea {line}: falta sentencia 'return' en la función '{func_name}' que declara retorno de tipo '{ret_type}'")
@@ -189,7 +189,7 @@ class SemanticAnalyzer:
             elif tag in ('var_init', 'var_typed', 'var_inferred', 'const_typed', 'const_inferred', 'short_var', 'assign', 'if', 'for_clause', 'call_stmt'):
                 self._analyze_statement(item, self.global_scope)
 
-        # Filtrar tipos nativos y funciones internas para la tabla del usuario
+        # Filtrar tipos nativos y funciones internas
         user_symbols = [
             s.to_schema() for s in self.all_symbols
             if s.data_type not in ("builtin_func", "type") or s.scope != "global" or s.data_type == "struct"

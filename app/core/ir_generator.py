@@ -15,14 +15,12 @@ class Quadruple:
         self.result = str(result) if result is not None else ""
 
     def to_triple_str(self) -> str:
-        # Formato .ir del curso (página 15 de IR.pdf): #1  (*, 4, 2, t1)
         a1 = self.arg1 if self.arg1 else ""
         a2 = self.arg2 if self.arg2 else ""
         res = self.result if self.result else ""
         return f"#{self.index}  ({self.op}, {a1}, {a2}, {res})"
 
     def to_tac_str(self) -> str:
-        # Formato Three-Address Code (TAC)
         if self.op == 'label':
             return f"{self.result}:"
         elif self.op == 'goto':
@@ -454,7 +452,7 @@ def generate_ir(code: str) -> IRResponse:
             postfix_expressions=[]
         )
 
-    # Generar IR
+    # Ahora sí generar IR
     generator = IRGenerator()
     quads, postfix = generator.generate(ast)
 
