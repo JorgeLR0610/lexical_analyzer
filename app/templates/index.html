@@ -228,6 +228,17 @@
             box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
         }
 
+        button.optimize-btn {
+            background: #6366f1;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        button.optimize-btn:hover {
+            background: #4f46e5;
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.45);
+        }
+
         .download-ir-btn {
             display: inline-flex;
             align-items: center;
@@ -644,6 +655,73 @@
             font-family: var(--mono-font);
             letter-spacing: 0.04em;
         }
+
+        /* Métricas y Visualización de Optimización U3 */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card {
+            background: #090e1a;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-value {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: #818cf8;
+            font-family: var(--mono-font);
+        }
+
+        .metric-label {
+            font-size: 0.88rem;
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .metric-sub {
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+
+        .cfg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 900px) {
+            .cfg-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 900px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .opt-action-bar {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -678,6 +756,10 @@
                     <div class="spinner" id="ir-spinner"></div>
                     <span id="ir-btn-text">Código intermedio (IR)</span>
                 </button>
+                <button id="optimize-btn" class="optimize-btn" onclick="analyzeOptimization()">
+                    <div class="spinner" id="optimize-spinner"></div>
+                    <span id="optimize-btn-text">Optimización</span>
+                </button>
                 <button id="clear-btn" class="outline-btn" onclick="clearEditor()" title="Limpiar código">
                     Limpiar
                 </button>
@@ -688,6 +770,7 @@
         <div id="parse-result-container"></div>
         <div id="semantic-result-container"></div>
         <div id="ir-result-container"></div>
+        <div id="optimization-result-container"></div>
 
         <!-- Tabla de Tokens -->
         <div id="results-section" class="glass-panel">
@@ -797,6 +880,7 @@
             document.getElementById('parse-result-container').style.display = 'none';
             document.getElementById('semantic-result-container').style.display = 'none';
             document.getElementById('ir-result-container').style.display = 'none';
+            document.getElementById('optimization-result-container').style.display = 'none';
             document.getElementById('results-body').innerHTML = '';
             document.getElementById('symbols-body').innerHTML = '';
         }
@@ -1274,6 +1358,310 @@
             const a = document.createElement('a');
             a.href = url;
             a.download = 'programa.ir';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        let lastOptData = null;
+
+        async function analyzeOptimization() {
+            const codeInput = textarea.value;
+            const optBtn = document.getElementById('optimize-btn');
+            
+            if (!codeInput.trim()) {
+                showError("El bloque de código no puede estar vacío.");
+                return;
+            }
+
+            hideAllResults();
+            optBtn.classList.add('loading');
+            document.getElementById('optimize-btn-text').textContent = 'Optimizando...';
+
+            try {
+                const response = await fetch('/optimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Error al comunicarse con el servidor");
+                }
+
+                const data = await response.json();
+                await displayOptimizationResult(data);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                optBtn.classList.remove('loading');
+                document.getElementById('optimize-btn-text').textContent = 'Optimización';
+            }
+        }
+
+        async function displayOptimizationResult(data) {
+            lastOptData = data;
+            const container = document.getElementById('optimization-result-container');
+            container.style.display = 'flex';
+            container.innerHTML = '';
+
+            if (data.success) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-card';
+                successDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3>
+                                <!-- <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> -->
+                                Optimización completada usando GFG
+                            </h3>
+                            <p style="margin:0; color:#cbd5e1;">Se analizaron los bloques básicos, se construyó el GFG y se aplicaron las técnicas de optimización</p>
+                        </div>
+                        <div class="opt-action-bar">
+                            <button class="download-ir-btn" onclick="downloadBeforeIR()" title="Descargar antes.ir">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Descargar antes.ir</span>
+                            </button>
+                            <button class="download-ir-btn" style="background:#6366f1;" onclick="downloadAfterIR()" title="Descargar despues.ir">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Descargar despues.ir</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(successDiv);
+
+                // Tarjetas de Métricas
+                const m = data.metrics;
+                const metricsDiv = document.createElement('div');
+                metricsDiv.className = 'metrics-grid';
+                metricsDiv.innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-value">${m.reduction_percent}%</div>
+                        <div class="metric-label">Reducción de código</div>
+                        <div class="metric-sub">${m.total_instructions_before} → ${m.total_instructions_after} instrucciones</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${m.total_instructions_before - m.total_instructions_after}</div>
+                        <div class="metric-label">Instrucciones eliminadas</div>
+                        <div class="metric-sub">Poda de código muerto e inalcanzable</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${m.temporals_saved}</div>
+                        <div class="metric-label">Temporales ahorrados</div>
+                        <div class="metric-sub">Reutilización y plegado</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${m.cyclomatic_complexity_before} → ${m.cyclomatic_complexity_after}</div>
+                        <div class="metric-label">Complejidad ciclomática</div>
+                        <div class="metric-sub">${m.blocks_before} → ${m.blocks_after} bloques básicos</div>
+                    </div>
+                `;
+                container.appendChild(metricsDiv);
+
+                // Grafos de Flujo de Control (GFG Original vs Optimizado)
+                const cfgDiv = document.createElement('div');
+                cfgDiv.className = 'cfg-grid';
+                cfgDiv.innerHTML = `
+                    <div class="ast-card">
+                        <div class="section-header-bar">
+                            <div class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/></svg>
+                                GFG original (${m.blocks_before} bloques)
+                            </div>
+                        </div>
+                        <div class="ast-viewport">
+                            <div id="mermaid-cfg-before"></div>
+                        </div>
+                    </div>
+                    <div class="ast-card">
+                        <div class="section-header-bar">
+                            <div class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                GFG optimizado (${m.blocks_after} bloques)
+                            </div>
+                        </div>
+                        <div class="ast-viewport">
+                            <div id="mermaid-cfg-after"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(cfgDiv);
+
+                if (window.mermaid) {
+                    try {
+                        const areaBefore = document.getElementById('mermaid-cfg-before');
+                        const idBefore = 'cfg-before-' + Date.now();
+                        const resBefore = await mermaid.render(idBefore, data.original_cfg_mermaid);
+                        areaBefore.innerHTML = resBefore.svg;
+
+                        const areaAfter = document.getElementById('mermaid-cfg-after');
+                        const idAfter = 'cfg-after-' + Date.now();
+                        const resAfter = await mermaid.render(idAfter, data.optimized_cfg_mermaid);
+                        areaAfter.innerHTML = resAfter.svg;
+                    } catch (err) {
+                        console.error("Error al renderizar Mermaid CFG:", err);
+                    }
+                }
+
+                // Tabla de Bloques Básicos y Sucesores
+                if (data.blocks_before && data.blocks_before.length > 0) {
+                    const bbCard = document.createElement('div');
+                    bbCard.className = 'ir-card';
+                    let bbRows = '';
+                    data.blocks_before.forEach(b => {
+                        const statusBadge = b.is_unreachable 
+                            ? `<span class="token-badge" style="background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.4);">Inalcanzable</span>`
+                            : `<span class="token-badge badge-type">Alcanzable</span>`;
+                        const instText = b.instructions.map(escapeHtml).join('<br/>');
+                        const succText = b.successors.length > 0 ? b.successors.join(', ') : 'Fin';
+                        bbRows += `
+                            <tr>
+                                <td style="font-weight:700; color:#38bdf8;">${escapeHtml(b.id)}</td>
+                                <td>${statusBadge}</td>
+                                <td style="font-family:var(--mono-font); font-size:0.85rem; line-height:1.5;">${instText}</td>
+                                <td style="color:#fbbf24; font-weight:600;">${escapeHtml(succText)}</td>
+                            </tr>
+                        `;
+                    });
+                    bbCard.innerHTML = `
+                        <div class="section-header-bar">
+                            <div class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                                Identificación de bloques básicos y tabla de sucesores
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bloque</th>
+                                        <th>Estado</th>
+                                        <th>Instrucciones TAC</th>
+                                        <th>Sucesores</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${bbRows}</tbody>
+                            </table>
+                        </div>
+                    `;
+                    container.appendChild(bbCard);
+                }
+
+                // Tabla de Transformaciones
+                if (data.transformations && data.transformations.length > 0) {
+                    const transCard = document.createElement('div');
+                    transCard.className = 'ir-card';
+                    let transRows = '';
+                    data.transformations.forEach(t => {
+                        transRows += `
+                            <tr>
+                                <td style="font-weight:700; color:#cbd5e1;">#${t.step}</td>
+                                <td><span class="token-badge badge-scope">${escapeHtml(t.block_id)}</span></td>
+                                <td><span class="token-badge" style="background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4);">${escapeHtml(t.technique)}</span></td>
+                                <td style="font-family:var(--mono-font); color:#f87171; font-size:0.85rem;">${escapeHtml(t.original_code)}</td>
+                                <td style="font-family:var(--mono-font); color:#34d399; font-size:0.85rem;">${escapeHtml(t.optimized_code)}</td>
+                                <td style="color:#cbd5e1; font-size:0.85rem; line-height:1.5;">${escapeHtml(t.justification)}</td>
+                            </tr>
+                        `;
+                    });
+                    transCard.innerHTML = `
+                        <div class="section-header-bar">
+                            <div class="section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                Tabla de transformaciones aplicadas (Rúbrica U3)
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Paso</th>
+                                        <th>Bloque</th>
+                                        <th>Técnica</th>
+                                        <th>Código original</th>
+                                        <th>Código optimizado</th>
+                                        <th>Justificación técnica</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${transRows}</tbody>
+                            </table>
+                        </div>
+                    `;
+                    container.appendChild(transCard);
+                }
+
+                // Comparador de Código IR (before.ir vs after.ir)
+                const compCard = document.createElement('div');
+                compCard.className = 'ir-card';
+                compCard.innerHTML = `
+                    <div class="section-header-bar">
+                        <div class="section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                            Comparativa de código intermedio
+                        </div>
+                    </div>
+                    <div class="comparison-grid">
+                        <div>
+                            <div style="font-weight:600; color:#f87171; margin-bottom:0.5rem; font-size:0.9rem;">Código original</div>
+                            <div class="tac-box" style="border-color:rgba(239,68,68,0.3);">${escapeHtml(data.original_ir)}</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:600; color:#34d399; margin-bottom:0.5rem; font-size:0.9rem;">Código optimizado</div>
+                            <div class="tac-box" style="border-color:rgba(16,185,129,0.3);">${escapeHtml(data.optimized_ir)}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(compCard);
+
+            } else {
+                let errorItemsHtml = '';
+                if (data.errors && data.errors.length > 0) {
+                    errorItemsHtml = `<ul class="error-list">` + data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('') + `</ul>`;
+                }
+
+                container.innerHTML = `
+                    <div class="error-card">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            No se pudo realizar la optimización
+                        </h3>
+                        <p style="margin:0; color:#cbd5e1;">El código presenta errores que deben corregirse antes de optimizar:</p>
+                        ${errorItemsHtml}
+                    </div>
+                `;
+            }
+        }
+
+        function downloadBeforeIR() {
+            if (!lastOptData || !lastOptData.original_ir) {
+                showError("No hay código original disponible para descargar.");
+                return;
+            }
+            const blob = new Blob([lastOptData.original_ir], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'antes.ir';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadAfterIR() {
+            if (!lastOptData || !lastOptData.optimized_ir) {
+                showError("No hay código optimizado disponible para descargar.");
+                return;
+            }
+            const blob = new Blob([lastOptData.optimized_ir], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'despues.ir';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
