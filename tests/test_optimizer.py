@@ -69,7 +69,7 @@ func test() int {
         opt_quads, trans = optimizer.optimize(quads)
 
         # Buscar transformaciones de folding
-        folding_trans = [t for t in trans if "Plegado de constantes" in t.technique]
+        folding_trans = [t for t in trans if "Constant Folding" in t.technique or "Plegado de constantes" in t.technique]
         self.assertGreaterEqual(len(folding_trans), 3)
         self.assertTrue(any("t1 = 50" in t.optimized_code for t in folding_trans))
         self.assertTrue(any("t2 = 20" in t.optimized_code for t in folding_trans))

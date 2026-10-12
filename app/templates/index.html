@@ -314,10 +314,9 @@
             animation: fadeIn 0.3s ease-out forwards;
         }
 
-        #parse-result-container, #semantic-result-container, #ir-result-container {
+        #parse-result-container, #semantic-result-container, #ir-result-container, #optimization-result-container {
             display: none;
             animation: fadeIn 0.3s ease-out forwards;
-            display: flex;
             flex-direction: column;
             gap: 1.25rem;
         }
@@ -693,28 +692,110 @@
             color: #94a3b8;
         }
 
-        .cfg-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        /* Estructura vertical para optimización */
+        .cfg-vertical-stack {
+            display: flex;
+            flex-direction: column;
             gap: 1.25rem;
+            width: 100%;
         }
 
-        @media (max-width: 900px) {
-            .cfg-grid {
-                grid-template-columns: 1fr;
-            }
+        .comparison-vertical-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
         }
 
-        .comparison-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
+        .ast-viewport svg {
+            max-width: 100%;
+            height: auto;
         }
 
-        @media (max-width: 900px) {
-            .comparison-grid {
-                grid-template-columns: 1fr;
-            }
+        .code-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.6rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .code-box-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.95rem;
+        }
+
+        .code-box-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .copy-code-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .copy-code-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .copy-code-btn.copied {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        /* Insignias temáticas de técnicas de optimización */
+        .badge-folding {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .badge-propagation {
+            background: rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+
+        .badge-cse {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+        }
+
+        .badge-deadcode {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .badge-strength {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .badge-branch {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.4);
         }
 
         .opt-action-bar {
@@ -728,7 +809,7 @@
     <main>
         <div class="header">
             <h1>Compilador Go</h1>
-            <p class="subtitle">Analizador léxico, sintáctico, semántico y generador de código intermedio</p>
+            <p class="subtitle">Analizador léxico, sintáctico, semántico, generador de código intermedio y optimizador (GFG)</p>
         </div>
 
         <div class="glass-panel">
@@ -1462,34 +1543,43 @@
                 `;
                 container.appendChild(metricsDiv);
 
-                // Grafos de Flujo de Control (GFG Original vs Optimizado)
-                const cfgDiv = document.createElement('div');
-                cfgDiv.className = 'cfg-grid';
-                cfgDiv.innerHTML = `
-                    <div class="ast-card">
-                        <div class="section-header-bar">
-                            <div class="section-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/></svg>
-                                GFG original (${m.blocks_before} bloques)
-                            </div>
+                // 1. Grafo de Flujo de Control (GFG) Original
+                const cfgBeforeCard = document.createElement('div');
+                cfgBeforeCard.className = 'ast-card';
+                cfgBeforeCard.innerHTML = `
+                    <div class="section-header-bar">
+                        <div class="section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8m-4-4h8"/></svg>
+                            Grafo de flujo de control (GFG) original
                         </div>
-                        <div class="ast-viewport">
-                            <div id="mermaid-cfg-before"></div>
+                        <div>
+                            <span class="token-badge badge-temp">${m.blocks_before} bloques básicos</span>
                         </div>
                     </div>
-                    <div class="ast-card">
-                        <div class="section-header-bar">
-                            <div class="section-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                GFG optimizado (${m.blocks_after} bloques)
-                            </div>
-                        </div>
-                        <div class="ast-viewport">
-                            <div id="mermaid-cfg-after"></div>
-                        </div>
+                    <div class="ast-viewport">
+                        <div id="mermaid-cfg-before" style="width:100%; display:flex; justify-content:center;"></div>
                     </div>
                 `;
-                container.appendChild(cfgDiv);
+                container.appendChild(cfgBeforeCard);
+
+                // 2. Grafo de Flujo de Control (GFG) Optimizado
+                const cfgAfterCard = document.createElement('div');
+                cfgAfterCard.className = 'ast-card';
+                cfgAfterCard.innerHTML = `
+                    <div class="section-header-bar">
+                        <div class="section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Grafo de flujo de control (GFG) optimizado
+                        </div>
+                        <div>
+                            <span class="token-badge badge-type">${m.blocks_after} bloques activos</span>
+                        </div>
+                    </div>
+                    <div class="ast-viewport">
+                        <div id="mermaid-cfg-after" style="width:100%; display:flex; justify-content:center;"></div>
+                    </div>
+                `;
+                container.appendChild(cfgAfterCard);
 
                 if (window.mermaid) {
                     try {
@@ -1499,7 +1589,7 @@
                         areaBefore.innerHTML = resBefore.svg;
 
                         const areaAfter = document.getElementById('mermaid-cfg-after');
-                        const idAfter = 'cfg-after-' + Date.now();
+                        const idAfter = 'cfg-after-' + (Date.now() + 1);
                         const resAfter = await mermaid.render(idAfter, data.optimized_cfg_mermaid);
                         areaAfter.innerHTML = resAfter.svg;
                     } catch (err) {
@@ -1507,14 +1597,14 @@
                     }
                 }
 
-                // Tabla de Bloques Básicos y Sucesores
+                // 3. Tabla de Bloques Básicos y Sucesores
                 if (data.blocks_before && data.blocks_before.length > 0) {
                     const bbCard = document.createElement('div');
                     bbCard.className = 'ir-card';
                     let bbRows = '';
                     data.blocks_before.forEach(b => {
                         const statusBadge = b.is_unreachable 
-                            ? `<span class="token-badge" style="background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.4);">Inalcanzable</span>`
+                            ? `<span class="token-badge badge-deadcode">Inalcanzable</span>`
                             : `<span class="token-badge badge-type">Alcanzable</span>`;
                         const instText = b.instructions.map(escapeHtml).join('<br/>');
                         const succText = b.successors.length > 0 ? b.successors.join(', ') : 'Fin';
@@ -1538,10 +1628,10 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Bloque</th>
-                                        <th>Estado</th>
+                                        <th style="width: 100px;">Bloque</th>
+                                        <th style="width: 140px;">Estado</th>
                                         <th>Instrucciones TAC</th>
-                                        <th>Sucesores</th>
+                                        <th style="width: 140px;">Sucesores</th>
                                     </tr>
                                 </thead>
                                 <tbody>${bbRows}</tbody>
@@ -1551,17 +1641,18 @@
                     container.appendChild(bbCard);
                 }
 
-                // Tabla de Transformaciones
+                // 4. Tabla de Transformaciones
                 if (data.transformations && data.transformations.length > 0) {
                     const transCard = document.createElement('div');
                     transCard.className = 'ir-card';
                     let transRows = '';
                     data.transformations.forEach(t => {
+                        const badgeCls = getTechniqueBadgeClass(t.technique);
                         transRows += `
                             <tr>
                                 <td style="font-weight:700; color:#cbd5e1;">#${t.step}</td>
                                 <td><span class="token-badge badge-scope">${escapeHtml(t.block_id)}</span></td>
-                                <td><span class="token-badge" style="background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4);">${escapeHtml(t.technique)}</span></td>
+                                <td><span class="token-badge ${badgeCls}">${escapeHtml(t.technique)}</span></td>
                                 <td style="font-family:var(--mono-font); color:#f87171; font-size:0.85rem;">${escapeHtml(t.original_code)}</td>
                                 <td style="font-family:var(--mono-font); color:#34d399; font-size:0.85rem;">${escapeHtml(t.optimized_code)}</td>
                                 <td style="color:#cbd5e1; font-size:0.85rem; line-height:1.5;">${escapeHtml(t.justification)}</td>
@@ -1572,16 +1663,16 @@
                         <div class="section-header-bar">
                             <div class="section-title">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                Tabla de transformaciones aplicadas (Rúbrica U3)
+                                Tabla de transformaciones aplicadas
                             </div>
                         </div>
                         <div class="table-container">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Paso</th>
-                                        <th>Bloque</th>
-                                        <th>Técnica</th>
+                                        <th style="width:70px;">Paso</th>
+                                        <th style="width:90px;">Bloque</th>
+                                        <th style="width:200px;">Técnica</th>
                                         <th>Código original</th>
                                         <th>Código optimizado</th>
                                         <th>Justificación técnica</th>
@@ -1594,24 +1685,57 @@
                     container.appendChild(transCard);
                 }
 
-                // Comparador de Código IR (before.ir vs after.ir)
+                // 5. Comparador de Código IR Apilado Verticalmente
                 const compCard = document.createElement('div');
                 compCard.className = 'ir-card';
                 compCard.innerHTML = `
                     <div class="section-header-bar">
                         <div class="section-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                            Comparativa de código intermedio
+                            Comparativa de código intermedio (IR)
                         </div>
                     </div>
-                    <div class="comparison-grid">
+                    <div class="comparison-vertical-stack">
                         <div>
-                            <div style="font-weight:600; color:#f87171; margin-bottom:0.5rem; font-size:0.9rem;">Código original</div>
-                            <div class="tac-box" style="border-color:rgba(239,68,68,0.3);">${escapeHtml(data.original_ir)}</div>
+                            <div class="code-box-header">
+                                <div class="code-box-title">
+                                    <span class="token-badge badge-deadcode">antes.ir</span>
+                                    <span style="font-weight:600; color:#f87171;">Código intermedio original</span>
+                                    <span style="color:#94a3b8; font-size:0.82rem;">(${m.total_instructions_before} instrucciones)</span>
+                                </div>
+                                <div class="code-box-actions">
+                                    <button class="copy-code-btn" onclick="copyOriginalIR(this)" title="Copiar código original">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                                        <span>Copiar</span>
+                                    </button>
+                                    <button class="copy-code-btn" onclick="downloadBeforeIR()" title="Descargar antes.ir">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        <span>Descargar antes.ir</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tac-box" style="border-color:rgba(239,68,68,0.35); max-height:420px; overflow-y:auto;">${escapeHtml(data.original_ir)}</div>
                         </div>
+
                         <div>
-                            <div style="font-weight:600; color:#34d399; margin-bottom:0.5rem; font-size:0.9rem;">Código optimizado</div>
-                            <div class="tac-box" style="border-color:rgba(16,185,129,0.3);">${escapeHtml(data.optimized_ir)}</div>
+                            <div class="code-box-header">
+                                <div class="code-box-title">
+                                    <span class="token-badge badge-strength">despues.ir</span>
+                                    <span style="font-weight:600; color:#34d399;">Código intermedio optimizado</span>
+                                    <span style="color:#94a3b8; font-size:0.82rem;">(${m.total_instructions_after} instrucciones)</span>
+                                </div>
+                                <div class="code-box-actions">
+                                    <button class="copy-code-btn" onclick="copyOptimizedIR(this)" title="Copiar código optimizado">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                                        <span>Copiar</span>
+                                    </button>
+                                    <button class="copy-code-btn" onclick="downloadAfterIR()" title="Descargar despues.ir">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        <span>Descargar despues.ir</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tac-box" style="border-color:rgba(16,185,129,0.35); max-height:420px; overflow-y:auto;">${escapeHtml(data.optimized_ir)}</div>
                         </div>
                     </div>
                 `;
@@ -1633,6 +1757,48 @@
                         ${errorItemsHtml}
                     </div>
                 `;
+            }
+        }
+
+        function getTechniqueBadgeClass(technique) {
+            const t = (technique || '').toLowerCase();
+            if (t.includes('folding') || t.includes('plegado')) return 'badge-folding';
+            if (t.includes('propagación')) return 'badge-propagation';
+            if (t.includes('subexpresiones') || t.includes('cse')) return 'badge-cse';
+            if (t.includes('muerto') || t.includes('dead')) return 'badge-deadcode';
+            if (t.includes('inalcanzable')) return 'badge-deadcode';
+            if (t.includes('fuerza')) return 'badge-strength';
+            if (t.includes('salto') || t.includes('bifurcación')) return 'badge-branch';
+            return 'badge-scope';
+        }
+
+        function copyCodeToClipboard(text, btn) {
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const origHtml = btn.innerHTML;
+                btn.classList.add('copied');
+                btn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>¡Copiado!</span>
+                `;
+                setTimeout(() => {
+                    btn.innerHTML = origHtml;
+                    btn.classList.remove('copied');
+                }, 1800);
+            }).catch(err => {
+                console.error("Error al copiar al portapapeles:", err);
+            });
+        }
+
+        function copyOriginalIR(btn) {
+            if (lastOptData && lastOptData.original_ir) {
+                copyCodeToClipboard(lastOptData.original_ir, btn);
+            }
+        }
+
+        function copyOptimizedIR(btn) {
+            if (lastOptData && lastOptData.optimized_ir) {
+                copyCodeToClipboard(lastOptData.optimized_ir, btn);
             }
         }
 
