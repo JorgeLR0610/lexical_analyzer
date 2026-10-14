@@ -43,11 +43,12 @@ def quad_to_tac(op: str, arg1: str = "", arg2: str = "", result: str = "") -> st
 
 
 class Quad:
-    def __init__(self, op: str, arg1: str = "", arg2: str = "", result: str = ""):
+    def __init__(self, op: str, arg1: str = "", arg2: str = "", result: str = "", block_id: str = "B1"):
         self.op = op
         self.arg1 = str(arg1) if arg1 is not None else ""
         self.arg2 = str(arg2) if arg2 is not None else ""
         self.result = str(result) if result is not None else ""
+        self.block_id = str(block_id) if block_id else "B1"
 
     def to_tac(self) -> str:
         return quad_to_tac(self.op, self.arg1, self.arg2, self.result)
@@ -59,7 +60,7 @@ class Quad:
         return f"#{idx}  ({self.op}, {a1}, {a2}, {res})"
 
     def clone(self) -> 'Quad':
-        return Quad(self.op, self.arg1, self.arg2, self.result)
+        return Quad(self.op, self.arg1, self.arg2, self.result, self.block_id)
 
 
 class Transformation:
@@ -127,9 +128,13 @@ class ControlFlowGraph:
 
         for idx, start_idx in enumerate(sorted_leaders):
             end_idx = sorted_leaders[idx + 1] if idx + 1 < len(sorted_leaders) else n
-            block_quads = [q.clone() for q in quads[start_idx:end_idx]]
+            block_id = f"B{len(blocks) + 1}"
+            block_quads = []
+            for q in quads[start_idx:end_idx]:
+                q.block_id = block_id
+                block_quads.append(q.clone())
             if block_quads:
-                b = BasicBlock(f"B{len(blocks) + 1}", block_quads)
+                b = BasicBlock(block_id, block_quads)
                 blocks.append(b)
 
         label_to_block = {}
@@ -205,9 +210,14 @@ class ControlFlowGraph:
         lines.append("    classDef entry fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;")
         lines.append("    classDef exitNode fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#f8fafc;")
 
-        if self.blocks:
-            lines.append("    Entry([Inicio]) --> B1")
+        if not self.blocks:
+            lines.append("    Entry([Inicio]) --> Exit([Fin])")
             lines.append("    class Entry entry;")
+            lines.append("    class Exit exitNode;")
+            return "\n".join(lines)
+
+        lines.append("    Entry([Inicio]) --> B1")
+        lines.append("    class Entry entry;")
 
         for i, b in enumerate(self.blocks):
             content_escaped = "<br/>".join([line.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;') for line in b.to_tac_lines()])
@@ -252,6 +262,8 @@ class IROptimizer:
         self.transformations = []
         self.step_counter = 0
 
+        # Particionar inicialmente en bloques para que cada Quad conozca su block_id (B1, B2...)
+        ControlFlowGraph.from_quads(quads)
         current_quads = [q.clone() for q in quads]
 
         # Pasadas de optimización iterativa hasta convergencia
@@ -327,10 +339,10 @@ class IROptimizer:
                     prev_res = seen_exprs[key]
                     orig_tac = q.to_tac()
                     # Reemplazar con asignación directa
-                    opt_q = Quad('=', prev_res, '', q.result)
+                    opt_q = Quad('=', prev_res, '', q.result, block_id=q.block_id)
                     new_quads.append(opt_q)
                     self.add_transformation(
-                        "Local",
+                        q.block_id,
                         "Eliminación de subexpresiones comunes",
                         orig_tac,
                         opt_q.to_tac(),
@@ -377,10 +389,10 @@ class IROptimizer:
                 replaced = True
 
             if replaced:
-                opt_q = Quad(q.op, new_arg1, new_arg2, q.result)
+                opt_q = Quad(q.op, new_arg1, new_arg2, q.result, block_id=q.block_id)
                 new_quads.append(opt_q)
                 self.add_transformation(
-                    "Local",
+                    q.block_id,
                     "Propagación de constantes",
                     orig_tac,
                     opt_q.to_tac(),
@@ -409,10 +421,10 @@ class IROptimizer:
                 if val is not None:
                     orig_tac = q.to_tac()
                     val_str = "true" if val is True else ("false" if val is False else str(val))
-                    opt_q = Quad('=', val_str, '', q.result)
+                    opt_q = Quad('=', val_str, '', q.result, block_id=q.block_id)
                     new_quads.append(opt_q)
                     self.add_transformation(
-                        "Local",
+                        q.block_id,
                         "Constant Folding",
                         orig_tac,
                         opt_q.to_tac(),
@@ -443,7 +455,7 @@ class IROptimizer:
                     # ifFalse true -> NUNCA salta! Se puede eliminar el salto
                     orig_tac = q.to_tac()
                     self.add_transformation(
-                        "Control",
+                        q.block_id,
                         "Simplificación de saltos",
                         orig_tac,
                         "// Salto condicional eliminado",
@@ -454,10 +466,10 @@ class IROptimizer:
                 elif cond_val == 'false':
                     # ifFalse false -> SIEMPRE salta! Se convierte en goto incondicional
                     orig_tac = q.to_tac()
-                    opt_q = Quad('goto', '', '', q.result)
+                    opt_q = Quad('goto', '', '', q.result, block_id=q.block_id)
                     new_quads.append(opt_q)
                     self.add_transformation(
-                        "Control",
+                        q.block_id,
                         "Simplificación de saltos",
                         orig_tac,
                         opt_q.to_tac(),
@@ -475,7 +487,7 @@ class IROptimizer:
                 next_q = new_quads[i + 1]
                 if next_q.op == 'label' and next_q.result == q.result:
                     self.add_transformation(
-                        "Control",
+                        q.block_id,
                         "Simplificación de saltos redundantes",
                         q.to_tac(),
                         "// Salto redundante eliminado",
@@ -533,6 +545,8 @@ class IROptimizer:
                 if q.arg2 and not self._is_literal(q.arg2):
                     used_vars.add(q.arg2)
 
+        has_return = any(q.op == 'return' for q in quads)
+
         # Regla: Propagación de return directo y eliminación de asignación intermedia: y = x; return y -> return x
         for i in range(len(quads) - 1):
             q_curr = quads[i]
@@ -546,7 +560,7 @@ class IROptimizer:
                     used_vars.discard(q_curr.result)
                     used_vars.add(q_curr.arg1)
                     self.add_transformation(
-                        "Local",
+                        q_curr.block_id,
                         "Propagación de retorno",
                         orig_ret,
                         q_next.to_tac(),
@@ -564,10 +578,15 @@ class IROptimizer:
 
             # Si es una asignación o cálculo pero su resultado nunca es leído:
             if q.result and q.result not in used_vars:
+                # Si es una variable de usuario (no temporal) y el programa no tiene return, preservarla
+                if not self._is_temporal(q.result) and not has_return:
+                    new_quads.append(q)
+                    continue
+
                 # Es código muerto!
                 orig_tac = q.to_tac()
                 self.add_transformation(
-                    "Local",
+                    q.block_id,
                     "Eliminación de código muerto",
                     orig_tac,
                     "// Instrucción eliminada",
@@ -579,6 +598,11 @@ class IROptimizer:
             new_quads.append(q)
 
         return new_quads, changed
+
+    def _is_temporal(self, s: str) -> bool:
+        if not s:
+            return False
+        return s.startswith('t') and s[1:].isdigit()
 
     def _is_literal(self, s: str) -> bool:
         if not s:
@@ -641,6 +665,8 @@ def optimize_code(code: str) -> OptimizationResponse:
         return OptimizationResponse(
             success=False,
             errors=ir_res.errors,
+            original_tac="",
+            optimized_tac="",
             original_ir="",
             optimized_ir="",
             original_cfg_mermaid="",
@@ -679,7 +705,9 @@ def optimize_code(code: str) -> OptimizationResponse:
     complexity_after = cfg_after.calculate_cyclomatic_complexity()
     blocks_schema_after = [b.to_schema() for b in cfg_after.blocks]
 
-    # Paso 5: Formatear IR strings (before.ir y after.ir)
+    # Paso 5: Formatear IR strings (before.ir y after.ir) y TAC strings
+    tac_before = "\n".join([q.to_tac() for q in quads_before])
+    tac_after = "\n".join([q.to_tac() for q in quads_after])
     triples_before = [q.to_triple(i + 1) for i, q in enumerate(quads_before)]
     triples_after = [q.to_triple(i + 1) for i, q in enumerate(quads_after)]
     ir_str_before = "\n".join(triples_before) + "\n"
@@ -709,6 +737,8 @@ def optimize_code(code: str) -> OptimizationResponse:
     return OptimizationResponse(
         success=True,
         errors=[],
+        original_tac=tac_before,
+        optimized_tac=tac_after,
         original_ir=ir_str_before,
         optimized_ir=ir_str_after,
         original_cfg_mermaid=mermaid_before,

@@ -80,6 +80,8 @@ class CFGMetricsResponse(BaseModel):
 class OptimizationResponse(BaseModel):
     success: bool
     errors: list[str] = []
+    original_tac: str = ""
+    optimized_tac: str = ""
     original_ir: str = ""
     optimized_ir: str = ""
     original_cfg_mermaid: str = ""

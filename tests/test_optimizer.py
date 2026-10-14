@@ -194,6 +194,20 @@ func main() {
         self.assertEqual(r_after.status_code, 200)
         self.assertIn("attachment; filename=despues.ir", r_after.headers.get("content-disposition", ""))
 
+    def test_standalone_variable_declaration_and_tac_comparison(self):
+        # Caso específico: var x int = 3 + 4 * 2
+        code = "var x int = 3 + 4 * 2"
+        res = optimize_code(code)
+        self.assertTrue(res.success)
+        self.assertEqual(res.metrics.total_instructions_after, 1)
+        self.assertEqual(len(res.blocks_after), 1)
+        self.assertIn("x = 11", res.optimized_tac)
+        self.assertIn("(=, 11, , x)", res.optimized_ir)
+        self.assertIn("t1 = 4 * 2", res.original_tac)
+        # Verificar que todos los bloques en transformaciones sean identificadores reales (B1, etc.)
+        self.assertTrue(all(t.block_id.startswith("B") for t in res.transformations))
+        self.assertFalse(any(t.block_id in ("Local", "Control") for t in res.transformations))
+
 
 if __name__ == "__main__":
     unittest.main()

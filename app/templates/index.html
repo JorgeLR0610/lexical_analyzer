@@ -1685,14 +1685,62 @@
                     container.appendChild(transCard);
                 }
 
-                // 5. Comparador de Código IR Apilado Verticalmente
-                const compCard = document.createElement('div');
-                compCard.className = 'ir-card';
-                compCard.innerHTML = `
+                // 5. Comparativa de Código de Tres Direcciones (TAC)
+                const tacCard = document.createElement('div');
+                tacCard.className = 'ir-card';
+                tacCard.innerHTML = `
+                    <div class="section-header-bar">
+                        <div class="section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                            Comparativa de código de tres direcciones (TAC)
+                        </div>
+                    </div>
+                    <div class="comparison-vertical-stack">
+                        <div>
+                            <div class="code-box-header">
+                                <div class="code-box-title">
+                                    <span class="token-badge badge-deadcode">TAC original</span>
+                                    <span style="font-weight:600; color:#f87171;">Código de tres direcciones original</span>
+                                    <span style="color:#94a3b8; font-size:0.82rem;">(${m.total_instructions_before} instrucciones)</span>
+                                </div>
+                                <div class="code-box-actions">
+                                    <button class="copy-code-btn" onclick="copyOriginalTAC(this)" title="Copiar TAC original">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                                        <span>Copiar TAC original</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tac-box" style="border-color:rgba(239,68,68,0.35); max-height:420px; overflow-y:auto;">${escapeHtml(data.original_tac)}</div>
+                        </div>
+
+                        <div>
+                            <div class="code-box-header">
+                                <div class="code-box-title">
+                                    <span class="token-badge badge-strength">TAC optimizado</span>
+                                    <span style="font-weight:600; color:#34d399;">Código de tres direcciones optimizado</span>
+                                    <span style="color:#94a3b8; font-size:0.82rem;">(${m.total_instructions_after} instrucciones)</span>
+                                </div>
+                                <div class="code-box-actions">
+                                    <button class="copy-code-btn" onclick="copyOptimizedTAC(this)" title="Copiar TAC optimizado">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                                        <span>Copiar TAC optimizado</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tac-box" style="border-color:rgba(16,185,129,0.35); max-height:420px; overflow-y:auto;">${escapeHtml(data.optimized_tac)}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(tacCard);
+
+                // 6. Comparador de Código IR Formato Tripletas/Cuádruplos
+                const irCompCard = document.createElement('div');
+                irCompCard.className = 'ir-card';
+                irCompCard.innerHTML = `
                     <div class="section-header-bar">
                         <div class="section-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                            Comparativa de código intermedio (IR)
+                            Comparativa de código intermedio formato .ir (tripletas)
                         </div>
                     </div>
                     <div class="comparison-vertical-stack">
@@ -1700,11 +1748,11 @@
                             <div class="code-box-header">
                                 <div class="code-box-title">
                                     <span class="token-badge badge-deadcode">antes.ir</span>
-                                    <span style="font-weight:600; color:#f87171;">Código intermedio original</span>
+                                    <span style="font-weight:600; color:#f87171;">Código intermedio original (.ir)</span>
                                     <span style="color:#94a3b8; font-size:0.82rem;">(${m.total_instructions_before} instrucciones)</span>
                                 </div>
                                 <div class="code-box-actions">
-                                    <button class="copy-code-btn" onclick="copyOriginalIR(this)" title="Copiar código original">
+                                    <button class="copy-code-btn" onclick="copyOriginalIR(this)" title="Copiar antes.ir">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
                                         <span>Copiar</span>
                                     </button>
@@ -1721,11 +1769,11 @@
                             <div class="code-box-header">
                                 <div class="code-box-title">
                                     <span class="token-badge badge-strength">despues.ir</span>
-                                    <span style="font-weight:600; color:#34d399;">Código intermedio optimizado</span>
+                                    <span style="font-weight:600; color:#34d399;">Código intermedio optimizado (.ir)</span>
                                     <span style="color:#94a3b8; font-size:0.82rem;">(${m.total_instructions_after} instrucciones)</span>
                                 </div>
                                 <div class="code-box-actions">
-                                    <button class="copy-code-btn" onclick="copyOptimizedIR(this)" title="Copiar código optimizado">
+                                    <button class="copy-code-btn" onclick="copyOptimizedIR(this)" title="Copiar despues.ir">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
                                         <span>Copiar</span>
                                     </button>
@@ -1739,7 +1787,7 @@
                         </div>
                     </div>
                 `;
-                container.appendChild(compCard);
+                container.appendChild(irCompCard);
 
             } else {
                 let errorItemsHtml = '';
@@ -1788,6 +1836,18 @@
             }).catch(err => {
                 console.error("Error al copiar al portapapeles:", err);
             });
+        }
+
+        function copyOriginalTAC(btn) {
+            if (lastOptData && lastOptData.original_tac) {
+                copyCodeToClipboard(lastOptData.original_tac, btn);
+            }
+        }
+
+        function copyOptimizedTAC(btn) {
+            if (lastOptData && lastOptData.optimized_tac) {
+                copyCodeToClipboard(lastOptData.optimized_tac, btn);
+            }
         }
 
         function copyOriginalIR(btn) {
