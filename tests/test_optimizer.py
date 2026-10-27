@@ -208,6 +208,53 @@ func main() {
         self.assertTrue(all(t.block_id.startswith("B") for t in res.transformations))
         self.assertFalse(any(t.block_id in ("Local", "Control") for t in res.transformations))
 
+    def test_optimization_analysis_generation_and_api(self):
+        # Validar generación del informe de análisis y conclusiones (Rúbrica U3 numeral 7)
+        code_go = """package main
+func ejecutar() int {
+    a := 5
+    b := 10
+    t1 := a + b
+    t2 := a + b
+    var x int = 0
+    if t1 > 10 {
+        x = 1
+    } else {
+        x = 0
+    }
+    y := x
+    z := 20 + 30
+    w := 100
+    return y
+    w = 200
+}
+func main() {
+    ejecutar()
+}"""
+        res = optimize_code(code_go)
+        self.assertTrue(res.success)
+        self.assertIsNotNone(res.analysis)
+        self.assertGreater(len(res.analysis.optimizations_applied), 0)
+        self.assertGreater(len(res.analysis.benefits), 0)
+        self.assertTrue(bool(res.analysis.instructions_analysis))
+        self.assertTrue(bool(res.analysis.cfg_contribution))
+        self.assertTrue(bool(res.analysis.conclusions))
+        self.assertIn("GFG", res.analysis.cfg_contribution)
+        self.assertIn("Complejidad Ciclomática", res.analysis.cfg_contribution)
+
+        # Validar serialización en endpoint FastAPI
+        r = self.client.post("/optimize", json={"code": code_go})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertIn("analysis", data)
+        self.assertIsNotNone(data["analysis"])
+        self.assertIn("summary", data["analysis"])
+        self.assertIn("optimizations_applied", data["analysis"])
+        self.assertIn("benefits", data["analysis"])
+        self.assertIn("instructions_analysis", data["analysis"])
+        self.assertIn("cfg_contribution", data["analysis"])
+        self.assertIn("conclusions", data["analysis"])
+
 
 if __name__ == "__main__":
     unittest.main()

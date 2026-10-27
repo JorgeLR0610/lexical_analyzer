@@ -12,7 +12,7 @@ Este documento ofrece una radiografía técnica y exhaustiva del compilador para
 - **Ramas de Git**:
   - `main`: Contiene el desarrollo completado hasta la Unidad 2 (Generación de Código Intermedio / IR).
   - `u3-optimizacion` (Rama activa): Incorpora la Unidad 3 completa: particionamiento en bloques básicos, construcción y renderizado de Grafos de Flujo de Control (CFG), 6 técnicas de optimización iterativa, tabla de transformaciones y métricas cuantitativas.
-- **Estado de Pruebas**: **56 pruebas unitarias implementadas, 56 pasando (100% éxito)** en 0.034 segundos.
+- **Estado de Pruebas**: **57 pruebas unitarias implementadas, 57 pasando (100% éxito)** en 0.037 segundos.
 - **Líneas de Código (Core)**: ~2,970 líneas distribuidas en 5 módulos en `app/core/`.
 
 ---
@@ -175,6 +175,16 @@ Corresponde a la implementación de la **Unidad 3** del curso (Optimización med
   (Donde $E$ es aristas, $N$ nodos y $P$ componentes conexas).
 - Conteo de bloques básicos antes y después.
 
+#### 6. Análisis de Resultados y Conclusiones (Rúbrica U3 - Numeral 7)
+- Modelo `OptimizationAnalysisResponse` en `schemas.py` y generador `generate_optimization_analysis` en `optimizer.py`.
+- Cumple exhaustivamente el criterio de evaluación de 10 puntos de la rúbrica U3:
+  1. **Optimizaciones realizadas**: Detalle desglosado por técnica (conteo de intervenciones, bloques básicos involucrados y explicación técnica).
+  2. **Beneficios obtenidos**: Justificación formal de ahorro en tiempo de CPU, menor presión sobre registros/temporales y consistencia semántica.
+  3. **Instrucciones eliminadas o simplificadas**: Balance cuantitativo inicial vs final, porcentaje de reducción y tipología de instrucciones podadas.
+  4. **Contribución del GFG**: Justificación del rol del grafo para delimitar bloques por líderes, descubrir bloques inalcanzables topológicamente y reducir la complejidad ciclomática de McCabe $V(G)$.
+  5. **Conclusiones**: Síntesis de ingeniería sobre la preservación semántica y las ganancias de eficiencia.
+- Renderizado interactivo en la sección 7 de la SPA con botón de copiado de reporte en Markdown.
+
 ---
 
 ### Fase 6: Capa Web y Endpoints REST
@@ -234,8 +244,8 @@ La suite consta de 56 pruebas automáticas distribuidas en 4 módulos:
 | [`tests/test_lexer_parser.py`](file:///home/jorge/Documents/LYA2/lexical_analyzer/tests/test_lexer_parser.py) | **30 tests** | Reconocimiento de palabras reservadas, operadores compuestos (`:=`, `+=`, `==`), literales enteros, flotantes, strings simples y raw strings, comentarios multilínea, delimitadores, parsing de declaraciones `var`, `func`, `struct`, bucles `for`, `if/else`, precedencia de operadores, y captura de errores sintácticos con línea/columna. |
 | [`tests/test_semantic.py`](file:///home/jorge/Documents/LYA2/lexical_analyzer/tests/test_semantic.py) | **12 tests** | Construcción de tabla de símbolos, verificación de scopes jerárquicos (global, local, bloques for/if), prevención de variables duplicadas en el mismo ámbito, detección de variables no declaradas, verificación de tipos en operaciones aritméticas y booleanas, comprobación de retornos de función. |
 | [`tests/test_ir.py`](file:///home/jorge/Documents/LYA2/lexical_analyzer/tests/test_ir.py) | **7 tests** | Generación de TAC, triplos y cuádruplos para aritmética con precedencia, traducción de estructuras `if-else` con etiquetas y saltos condicionales, bucles `for`, llamadas y definiciones de funciones, generación de expresiones postfijas. |
-| [`tests/test_optimizer.py`](file:///home/jorge/Documents/LYA2/lexical_analyzer/tests/test_optimizer.py) | **7 tests** | Particionamiento correcto en bloques básicos según líderes, cálculo de predecesores/sucesores y complejidad ciclomática del CFG, Constant Folding, Constant Propagation, Common Subexpression Elimination, Dead Code Elimination, y prueba integradora de Unidad 3 con reporte de métricas. |
-| **Total** | **56 tests** | **100% pasando (0 fallos, 0 errores)** |
+| [`tests/test_optimizer.py`](file:///home/jorge/Documents/LYA2/lexical_analyzer/tests/test_optimizer.py) | **8 tests** | Particionamiento correcto en bloques básicos según líderes, cálculo de predecesores/sucesores y complejidad ciclomática del CFG, Constant Folding, Constant Propagation, Common Subexpression Elimination, Dead Code Elimination, prueba integradora de Unidad 3 con reporte de métricas y validación del informe de análisis y conclusiones (numeral 7). |
+| **Total** | **57 tests** | **100% pasando (0 fallos, 0 errores)** |
 
 ---
 

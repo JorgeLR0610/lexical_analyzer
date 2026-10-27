@@ -77,6 +77,14 @@ class CFGMetricsResponse(BaseModel):
     blocks_before: int
     blocks_after: int
 
+class OptimizationAnalysisResponse(BaseModel):
+    summary: str
+    optimizations_applied: list[str] = []
+    benefits: list[str] = []
+    instructions_analysis: str = ""
+    cfg_contribution: str = ""
+    conclusions: str = ""
+
 class OptimizationResponse(BaseModel):
     success: bool
     errors: list[str] = []
@@ -90,3 +98,4 @@ class OptimizationResponse(BaseModel):
     blocks_after: list[BasicBlockResponse] = []
     transformations: list[TransformationResponse] = []
     metrics: CFGMetricsResponse
+    analysis: Optional[OptimizationAnalysisResponse] = None

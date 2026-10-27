@@ -43,17 +43,17 @@ source .venv/bin/activate   # Linux / macOS
 Una vez iniciado, la aplicación está accesible en: `http://localhost:8000`.
 
 ### 2.3. Suite de Pruebas Unitarias
-El proyecto utiliza el módulo nativo `unittest` de Python. **Toda modificación debe validar que las 56 pruebas pasen sin fallos.**
+El proyecto utiliza el módulo nativo `unittest` de Python. **Toda modificación debe validar que las 57 pruebas pasen sin fallos.**
 
 ```bash
-# Ejecutar todas las pruebas del proyecto (56 pruebas):
+# Ejecutar todas las pruebas del proyecto (57 pruebas):
 .venv/bin/python -m unittest discover tests
 
 # Ejecutar módulos específicos de prueba:
 .venv/bin/python -m unittest tests/test_lexer_parser.py   # Léxico y sintáctico (30 tests)
 .venv/bin/python -m unittest tests/test_semantic.py       # Análisis semántico y scopes (12 tests)
 .venv/bin/python -m unittest tests/test_ir.py             # Generación de TAC, triplos, cuádruplos (7 tests)
-.venv/bin/python -m unittest tests/test_optimizer.py      # CFG y pases de optimización U3 (7 tests)
+.venv/bin/python -m unittest tests/test_optimizer.py      # CFG y pases de optimización U3 (8 tests)
 ```
 
 ---
@@ -199,7 +199,7 @@ En `app/core/optimizer.py`:
 ## 6. Reglas de Oro para Agentes de IA
 
 > [!CAUTION]
-> 1. **No romper la suite de pruebas**: Antes de finalizar cualquier tarea, corre `.venv/bin/python -m unittest discover tests`. Debe reportar `Ran 56 tests in ... OK`.
+> 1. **No romper la suite de pruebas**: Antes de finalizar cualquier tarea, corre `.venv/bin/python -m unittest discover tests`. Debe reportar `Ran 57 tests in ... OK`.
 > 2. **Advertencias de SLY**: Al inicializar el parser se imprimirán advertencias de `shift/reduce` y `reduce/reduce` (actualmente 44 y 4). Esto es normal debido a la ausencia de análisis con inserción obligatoria de `;` al estilo de la especificación completa de Go. No intentes reescribir la gramática arbitrariamente para eliminar estos warnings sin consultar.
 > 3. **Preservar la inmutabilidad de Quads en transformaciones**: Cuando optimices código en `optimizer.py`, utiliza `q.clone()` o listas nuevas para evitar efectos secundarios en pasos anteriores del log de transformaciones.
 > 4. **Tipos Pydantic sincronizados**: Cualquier cambio en la estructura de retorno de los módulos de `core/` debe verse reflejado en `app/api/schemas.py` y verificado en `app/api/routes.py`.
