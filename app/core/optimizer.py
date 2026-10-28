@@ -697,9 +697,9 @@ def generate_optimization_analysis(
             if "propagación" in t or "propagacion" in t:
                 return "Se sustituyeron variables locales por sus valores constantes previamente asignados dentro del mismo bloque básico, habilitando nuevos pliegues de expresiones y eliminando lecturas redundantes."
             if "subexpresiones" in t or "cse" in t:
-                return "Se detectaron cálculos repetidos con operandos inalterados dentro del bloque básico (CSE), reutilizando el resultado del cálculo inicial y evitando operaciones redundantes de procesador."
+                return "Se detectaron cálculos repetidos con operandos inalterados dentro del bloque básico, reutilizando el resultado del cálculo inicial y evitando operaciones redundantes de procesador."
             if "inalcanzable" in t:
-                return "Se podaron instrucciones y bloques ubicados posteriormente a instrucciones de retorno incondicional (return) o saltos sin transiciones entrantes alcanzables desde la entrada."
+                return "Se podaron instrucciones y bloques ubicados posteriormente a instrucciones de retorno incondicional o saltos sin transiciones entrantes alcanzables desde la entrada."
             if "muerto" in t or "dead" in t:
                 return "Se suprimieron asignaciones a variables y temporales cuyos valores nunca vuelven a ser consultados o leídos antes del retorno o fin de ejecución."
             if "salto" in t:
@@ -716,7 +716,7 @@ def generate_optimization_analysis(
     # 2. Beneficios obtenidos
     benefits = [
         f"**Mayor eficiencia en tiempo de ejecución (CPU)**: Se redujo la carga de procesamiento al pasar de {total_before} a {total_after} instrucciones ejecutables (-{reduction}%). La eliminación de cálculos redundantes y saltos innecesarios disminuye el número de ciclos de reloj requeridos.",
-        f"**Menor consumo de memoria y registros**: Se economizaron {temps} registro(s) temporal(es) intermedio(s). Esto aminora la presión de registros (register pressure) en la etapa de generación de código objeto/máquina y optimiza el uso de la pila de memoria (stack frame).",
+        f"**Menor consumo de memoria y registros**: Se economizaron {temps} registro(s) temporal(es) intermedio(s). Esto aminora la presión de registros en la etapa de generación de código objeto/máquina y optimiza el uso de la pila de memoria.",
         f"**Preservación estricta de la semántica**: Todas las transformaciones se rigen por la regla de equivalencia funcional, garantizando que el programa optimizado produzca con total fidelidad las mismas salidas y efectos colaterales que el código fuente Go original."
     ]
     if c_before > c_after or b_before > b_after:
@@ -740,9 +740,9 @@ def generate_optimization_analysis(
     # 4. Contribución del GFG en el proceso de optimización
     cfg_contrib = (
         f"El Grafo de Flujo de Control (GFG) fue la herramienta central e indispensable para estructurar la optimización:\n"
-        f"1. **Partición Formal en Bloques Básicos**: Permitió dividir el flujo secuencial en {b_before} bloques mediante la detección rigurosa de líderes (primera instrucción, destinos de saltos/etiquetas e instrucciones posteriores a saltos).\n"
-        f"2. **Análisis Topológico de Alcanzabilidad**: Gracias a la matriz de sucesores y predecesores, el GFG identificó visual y formalmente qué bloques no poseen ningún camino ejecutable desde el nodo de entrada ([Inicio] -> B1), fundamentando la eliminación rigurosa de código inalcanzable.\n"
-        f"3. **Métricas Estructurales de Complejidad**: El grafo permitió calcular la Complejidad Ciclomática de McCabe (V(G) = E - N + 2P), constatando la reducción de complejidad de {c_before} a {c_after} y demostrando formalmente la simplificación estructural obtenida."
+        f"1. **Partición en bloques básicos**: Permitió dividir el flujo secuencial en {b_before} bloques mediante la detección rigurosa de líderes (primera instrucción, destinos de saltos/etiquetas e instrucciones posteriores a saltos).\n"
+        f"2. **Análisis topológico de alcanzabilidad**: Gracias a la matriz de sucesores y predecesores, el GFG identificó visual y formalmente qué bloques no poseen ningún camino ejecutable desde el nodo de entrada ([Inicio] -> B1), fundamentando la eliminación rigurosa de código inalcanzable.\n"
+        f"3. **Métricas estructurales de complejidad**: El grafo permitió calcular la Complejidad Ciclomática de McCabe, constatando la reducción de complejidad de {c_before} a {c_after} y demostrando formalmente la simplificación estructural obtenida."
     )
 
     # 5. Conclusiones
@@ -750,7 +750,7 @@ def generate_optimization_analysis(
         f"El proceso de optimización implementado sobre el Grafo de Flujo de Control valida la importancia del análisis estático intermedio en compiladores. "
         f"A través de la combinación de optimizaciones locales intra-bloque (plegado, propagación y eliminación de subexpresiones) "
         f"y optimizaciones globales basadas en el flujo de control (eliminación de código inalcanzable y código muerto), se obtuvo un código {reduction}% más compacto, "
-        f"ahorrando {temps} temporales y simplificando el flujo de ejecución, cumpliendo cabalmente con los criterios de optimización sin alterar el comportamiento del programa Go original."
+        f"ahorrando {temps} temporales y simplificando el flujo de ejecución, cumpliendo con los criterios de optimización sin alterar el comportamiento del programa Go original."
     )
 
     summary = (

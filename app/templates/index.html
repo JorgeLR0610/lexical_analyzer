@@ -1814,10 +1814,9 @@
                         <div class="section-header-bar" style="background: rgba(99, 102, 241, 0.12); border-bottom: 1px solid rgba(99, 102, 241, 0.25);">
                             <div class="section-title" style="color:#a5b4fc;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                7. Análisis de resultados y conclusiones (Rúbrica U3)
+                                Análisis de resultados y conclusiones
                             </div>
                             <div style="display:flex; align-items:center; gap:0.75rem;">
-                                <span class="token-badge badge-strength">10 Puntos</span>
                                 <button class="copy-code-btn" onclick="copyAnalysisReport(this)" title="Copiar informe de análisis">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
                                     <span>Copiar análisis</span>
@@ -1826,11 +1825,11 @@
                         </div>
 
                         <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
-                            <!-- Resumen ejecutivo -->
+                            <!-- Resumen -->
                             <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1rem 1.25rem;">
                                 <div style="font-weight: 700; color: #38bdf8; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                    Resumen Ejecutivo
+                                    Resumen
                                 </div>
                                 <p style="margin: 0; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(an.summary)}</p>
                             </div>
@@ -1838,7 +1837,7 @@
                             <!-- 1. Optimizaciones realizadas -->
                             <div style="background: rgba(30, 41, 59, 0.4); border-left: 4px solid #818cf8; border-radius: 4px 10px 10px 4px; padding: 1rem 1.25rem;">
                                 <h4 style="margin: 0 0 0.5rem 0; color: #c7d2fe; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                                    <span>•</span> Optimizaciones Realizadas
+                                    <span>•</span> Optimizaciones realizadas
                                 </h4>
                                 ${optListHtml}
                             </div>
@@ -1862,7 +1861,7 @@
                             <!-- 4. Contribución del GFG -->
                             <div style="background: rgba(30, 41, 59, 0.4); border-left: 4px solid #38bdf8; border-radius: 4px 10px 10px 4px; padding: 1rem 1.25rem;">
                                 <h4 style="margin: 0 0 0.5rem 0; color: #bae6fd; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                                    <span>•</span> Contribución del Grafo de Flujo de Control (GFG) en el Proceso de Optimización
+                                    <span>•</span> Contribución del Grafo de Flujo de Control (GFG) en el proceso de optimización
                                 </h4>
                                 <div style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.6; white-space: pre-line;">${formatMarkdownBold(escapeHtml(an.cfg_contribution))}</div>
                             </div>
@@ -1871,7 +1870,7 @@
                             <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 1rem 1.25rem;">
                                 <div style="font-weight: 700; color: #34d399; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    Conclusiones del Análisis
+                                    Conclusiones
                                 </div>
                                 <p style="margin: 0; color: #e2e8f0; font-size: 0.9rem; line-height: 1.6;">${escapeHtml(an.conclusions)}</p>
                             </div>
