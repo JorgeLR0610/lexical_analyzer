@@ -6,13 +6,16 @@ from api.schemas import (
     ParseResponse,
     SemanticResponse,
     IRResponse,
-    OptimizationResponse
+    OptimizationResponse,
+    InterferenceGraphRequest,
+    InterferenceGraphResponse
 )
 from core.lexer import analyze_code
 from core.parser import analyze_syntax
 from core.semantic import analyze_semantics
 from core.ir_generator import generate_ir
 from core.optimizer import optimize_code
+from core.interference_graph import analyze_interference_graph
 
 router = APIRouter()
 
@@ -85,3 +88,9 @@ def export_after_endpoint(request: CodeRequest):
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=despues.ir"}
     )
+
+@router.post("/interference-graph", response_model=InterferenceGraphResponse)
+def interference_graph_endpoint(request: InterferenceGraphRequest):
+    if not request.adjacency_list.strip():
+        raise HTTPException(status_code=400, detail="La lista de adyacencia no puede estar vacía.")
+    return analyze_interference_graph(request.adjacency_list)

@@ -99,3 +99,39 @@ class OptimizationResponse(BaseModel):
     transformations: list[TransformationResponse] = []
     metrics: CFGMetricsResponse
     analysis: Optional[OptimizationAnalysisResponse] = None
+
+class InterferenceGraphRequest(BaseModel):
+    adjacency_list: str
+
+class RegisterColorClass(BaseModel):
+    color_id: int
+    register_name: str
+    color_name: str
+    color_hex: str
+    hex_color: Optional[str] = None
+    nodes: list[str] = []
+    count: int = 0
+
+class NodeAssignment(BaseModel):
+    node: str
+    degree: int = 0
+    register_name: str
+    color_name: str
+    color_hex: str
+    hex_color: Optional[str] = None
+
+class InterferenceGraphResponse(BaseModel):
+    success: bool
+    errors: list[str] = []
+    nodes: list[str] = []
+    edges: list[list[str]] = []
+    chromatic_number: int = 0
+    total_nodes: int = 0
+    num_nodes: Optional[int] = None
+    total_edges: int = 0
+    num_edges: Optional[int] = None
+    max_degree: int = 0
+    color_distribution: list[RegisterColorClass] = []
+    color_classes: Optional[list[RegisterColorClass]] = None
+    node_assignments: list[NodeAssignment] = []
+    mermaid_diagram: str = ""

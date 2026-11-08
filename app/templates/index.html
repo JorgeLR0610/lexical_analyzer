@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/dist/vis-network.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/dist/dist/vis-network.min.css" />
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -803,6 +805,432 @@
             gap: 0.75rem;
             flex-wrap: wrap;
         }
+
+        /* Pestañas de Navegación Principal */
+        .main-nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .main-tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #94a3b8;
+            padding: 0.65rem 1.4rem;
+            border-radius: 9999px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+        }
+
+        .main-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .main-tab-btn.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
+            border-color: #a855f7;
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        }
+
+        /* Estilos Sección Grafo de Interferencia & Coloración */
+        .graph-workspace-layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 1.5rem;
+            width: 100%;
+            align-items: stretch;
+            min-height: 720px;
+        }
+
+        @media (max-width: 1080px) {
+            .graph-workspace-layout {
+                grid-template-columns: 1fr;
+            }
+            .graph-canvas-wrapper {
+                min-height: 600px;
+                height: 640px;
+            }
+        }
+
+        .graph-sidebar-card {
+            background: var(--container-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .graph-header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .graph-brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .brand-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .graph-brand-title {
+            font-size: 1.18rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .graph-brand-sub {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin: 0.2rem 0 0 0;
+        }
+
+        .graph-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .graph-section-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .graph-preset-select {
+            background: #090e1a;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #38bdf8;
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            max-width: 230px;
+            font-family: inherit;
+        }
+
+        .graph-preset-select:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        .graph-textarea {
+            width: 100%;
+            height: 165px;
+            background: #060911;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            font-family: var(--mono-font);
+            font-size: 0.9rem;
+            color: #38bdf8;
+            resize: vertical;
+            outline: none;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+
+        .graph-textarea:focus {
+            border-color: #a855f7;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+        }
+
+        .graph-textarea-hint {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.35rem;
+            line-height: 1.4;
+        }
+
+        .graph-action-row {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 0.25rem;
+        }
+
+        .btn-calc-color {
+            flex: 1;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.35);
+            font-family: inherit;
+        }
+
+        .btn-calc-color:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.45);
+        }
+
+        .btn-clear-trash {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear-trash:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+
+        /* Métricas del Grafo */
+        .graph-metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .graph-metric-mini-card {
+            background: #090e1a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .graph-metric-mini-value {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: #f8fafc;
+            font-family: var(--mono-font);
+        }
+
+        .graph-metric-mini-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-top: 0.15rem;
+        }
+
+        .graph-status-badge-card {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: #34d399;
+            font-size: 0.88rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: 1.4;
+        }
+
+        /* Distribución de Colores */
+        .color-classes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .color-class-item {
+            background: #090e1a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0.75rem 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: border-color 0.2s;
+        }
+
+        .color-class-item:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .color-class-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .color-swatch-box {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .color-class-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .color-class-nodes {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-family: var(--mono-font);
+            margin-top: 0.1rem;
+        }
+
+        .color-class-badge {
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            color: #cbd5e1;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Canvas y Visor Derecho */
+        .graph-canvas-wrapper {
+            background: #070b14;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            min-height: 720px;
+            height: 100%;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .graph-canvas-toolbar {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .graph-tool-btn {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .graph-tool-btn:hover {
+            background: rgba(30, 41, 59, 0.95);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .graph-tool-btn.active {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: #818cf8;
+            color: #818cf8;
+        }
+
+        #vis-network-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        #vis-network-canvas .vis-network,
+        #vis-network-canvas canvas {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            outline: none;
+        }
+
+        .graph-canvas-legend {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            font-size: 0.78rem;
+            padding: 0.4rem 1.1rem;
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -812,6 +1240,19 @@
             <p class="subtitle">Analizador léxico, sintáctico, semántico, generador de código intermedio y optimizador (GFG)</p>
         </div>
 
+        <div class="main-nav-tabs">
+            <button class="main-tab-btn active" id="tab-compiler-btn" onclick="switchMainTab('compiler')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                <span>Compilador Go</span>
+            </button>
+            <button class="main-tab-btn" id="tab-graph-btn" onclick="switchMainTab('graph')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><line x1="8.5" y1="7.5" x2="15.5" y2="7.5"></line><line x1="7.5" y1="8.5" x2="10.5" y2="15.5"></line><line x1="16.5" y1="8.5" x2="13.5" y2="15.5"></line></svg>
+                <span>Grafo de Interferencia (Registros)</span>
+            </button>
+        </div>
+
+        <!-- Área de Trabajo: Compilador Go -->
+        <div id="compiler-workspace">
         <div class="glass-panel">
             <div class="editor-wrapper">
                 <div class="editor-container">
@@ -840,6 +1281,9 @@
                 <button id="optimize-btn" class="optimize-btn" onclick="analyzeOptimization()">
                     <div class="spinner" id="optimize-spinner"></div>
                     <span id="optimize-btn-text">Optimización</span>
+                </button>
+                <button id="goto-graph-btn" class="outline-btn" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="switchMainTab('graph')" title="Ir a Coloración de Grafos de Interferencia">
+                    Grafo de interferencia
                 </button>
                 <button id="clear-btn" class="outline-btn" onclick="clearEditor()" title="Limpiar código">
                     Limpiar
@@ -895,6 +1339,144 @@
                 </table>
             </div>
         </div>
+        </div> <!-- Fin de compiler-workspace -->
+
+        <!-- Área de Trabajo: Grafo de Interferencia y Coloración (Asignación de Registros) -->
+        <div id="interference-workspace" style="display: none; width: 100%;">
+            <div class="graph-workspace-layout">
+                <!-- Columna Izquierda: Controles y Métricas -->
+                <div class="graph-sidebar-card">
+                    <div class="graph-header-brand">
+                        <div class="graph-brand-icon">
+                            <div class="brand-dot" style="background:#06b6d4;"></div>
+                            <div class="brand-dot" style="background:#f43f5e;"></div>
+                            <div class="brand-dot" style="background:#10b981;"></div>
+                        </div>
+                        <div>
+                            <h2 class="graph-brand-title">Grafo Coloreado</h2>
+                            <p class="graph-brand-sub">Coloreo óptimo con mínimo número cromático</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="graph-section-header">
+                            <span class="graph-section-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                                Lista de adyacencia
+                            </span>
+                            <select id="graph-preset-select" class="graph-preset-select" onchange="onPresetChange(this.value)">
+                                <option value="user_example" selected>Ejemplo Práctica (A: B, F...)</option>
+                                <option value="c6_even">Ciclo Par C6 (χ = 2)</option>
+                                <option value="ref_img">Grafo de prueba (χ = 3)</option>
+                                <option value="compiler_vars">Variables Compilador (χ = 3)</option>
+                                <option value="k4_complete">Grafo Completo K4 (χ = 4)</option>
+                                <option value="k33_bipartite">Grafo Bipartito K3,3 (χ = 2)</option>
+                                <option value="petersen">Grafo de Petersen (χ = 3)</option>
+                                <option value="custom">Personalizado...</option>
+                            </select>
+                        </div>
+                        <textarea id="graph-input" class="graph-textarea" spellcheck="false" placeholder="Ingresa la lista de adyacencia...">A: B, F
+B: C
+C: D
+D: E, F
+E: F</textarea>
+                        <div class="graph-textarea-hint">Formatos admitidos: <code>A: B, C</code>, <code>A: B C</code>, o pares <code>A-B</code>. Es no dirigido automáticamente.</div>
+                        <div class="graph-action-row">
+                            <button id="calc-color-btn" class="btn-calc-color" onclick="analyzeInterferenceGraph()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <span>Calcular coloreo mínimo</span>
+                            </button>
+                            <button id="clear-graph-btn" class="btn-clear-trash" onclick="clearGraphEditor()" title="Limpiar lista de adyacencia">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="graph-results-panel" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                        <!-- Métricas del Grafo -->
+                        <div>
+                            <div class="graph-section-header">
+                                <span class="graph-section-label">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                    Métricas del grafo
+                                </span>
+                            </div>
+                            <div class="graph-metrics-grid">
+                                <div class="graph-metric-mini-card">
+                                    <span class="graph-metric-mini-value" id="graph-metric-nodes">-</span>
+                                    <span class="graph-metric-mini-label">Nodos / Vértices</span>
+                                </div>
+                                <div class="graph-metric-mini-card">
+                                    <span class="graph-metric-mini-value" id="graph-metric-edges">-</span>
+                                    <span class="graph-metric-mini-label">Aristas / Relaciones</span>
+                                </div>
+                            </div>
+                            <div id="graph-status-badge" class="graph-status-badge-card" style="margin-top: 0.6rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span id="graph-status-text">¡Coloreo óptimo verificado! (χ = 3)</span>
+                            </div>
+                        </div>
+
+                        <!-- Distribución de Colores -->
+                        <div>
+                            <div class="graph-section-header">
+                                <span class="graph-section-label">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10"></path></svg>
+                                    Distribución de colores
+                                </span>
+                                <span class="color-class-badge" id="graph-color-count-badge">3 colores</span>
+                            </div>
+                            <div class="color-classes-list" id="color-classes-container">
+                                <!-- Inyectado dinámicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Tabla Detallada Colapsable -->
+                        <details style="background: #090e1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.75rem 0.9rem;">
+                            <summary style="font-size: 0.82rem; font-weight: 600; color: #94a3b8; cursor: pointer; user-select: none;">
+                                Tabla de asignación de registros
+                            </summary>
+                            <div style="overflow-x: auto; margin-top: 0.6rem;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; text-align: left;">
+                                            <th style="padding: 0.4rem 0.6rem;">Variable</th>
+                                            <th style="padding: 0.4rem 0.6rem;">Grado</th>
+                                            <th style="padding: 0.4rem 0.6rem;">Registro</th>
+                                            <th style="padding: 0.4rem 0.6rem;">Color</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="graph-table-body">
+                                        <!-- Inyectado dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Visualizador Interactivo Vis.js -->
+                <div class="graph-canvas-wrapper">
+                    <div class="graph-canvas-toolbar">
+                        <button class="graph-tool-btn" onclick="fitVisNetwork()" title="Ajustar y centrar grafo">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                            <span>Ajustar</span>
+                        </button>
+                        <button class="graph-tool-btn active" id="btn-toggle-physics" onclick="toggleVisPhysics()" title="Alternar simulación de física">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            <span id="physics-btn-text">Física: ON</span>
+                        </button>
+                        <button class="graph-tool-btn active" id="btn-toggle-color-mode" onclick="toggleColorMode()" title="Alternar entre coloreado y sin colorear">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span id="color-mode-text">Grafo coloreado</span>
+                        </button>
+                    </div>
+
+                    <div id="vis-network-canvas"></div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
@@ -2032,6 +2614,448 @@
                  .replace(/>/g, "&gt;")
                  .replace(/"/g, "&quot;")
                  .replace(/'/g, "&#039;");
+        }
+
+        /* ==============================================================
+           LÓGICA DEL GRAFO DE INTERFERENCIA Y COLORACIÓN DE REGISTROS
+           ============================================================== */
+
+        const GRAPH_PRESETS = {
+            user_example: "A: B, F\nB: C\nC: D\nD: E, F\nE: F",
+            c6_even: "A: B, F\nB: A, C\nC: B, D\nD: C, E\nE: D, F\nF: E, A",
+            ref_img: "A: B, F\nB: C\nC: D\nD: E, F\nE: F",
+            compiler_vars: "x: y, z\ny: x, a\nz: x, b\na: y, b\nb: z, a, t1\nt1: b, x",
+            k4_complete: "A: B, C, D\nB: A, C, D\nC: A, B, D\nD: A, B, C",
+            k33_bipartite: "u1: v1, v2, v3\nu2: v1, v2, v3\nu3: v1, v2, v3",
+            petersen: "1: 2, 5, 6\n2: 1, 3, 7\n3: 2, 4, 8\n4: 3, 5, 9\n5: 4, 1, 10\n6: 1, 8, 9\n7: 2, 9, 10\n8: 3, 6, 10\n9: 4, 6, 7\n10: 5, 7, 8"
+        };
+
+        let visNetworkInstance = null;
+        let lastGraphData = null;
+        let isPhysicsEnabled = true;
+        let isColorMode = true;
+
+        function switchMainTab(tab) {
+            const tabCompilerBtn = document.getElementById('tab-compiler-btn');
+            const tabGraphBtn = document.getElementById('tab-graph-btn');
+            const compilerWorkspace = document.getElementById('compiler-workspace');
+            const interferenceWorkspace = document.getElementById('interference-workspace');
+
+            if (tab === 'compiler') {
+                tabCompilerBtn.classList.add('active');
+                tabGraphBtn.classList.remove('active');
+                compilerWorkspace.style.display = 'block';
+                interferenceWorkspace.style.display = 'none';
+            } else {
+                tabGraphBtn.classList.add('active');
+                tabCompilerBtn.classList.remove('active');
+                compilerWorkspace.style.display = 'none';
+                interferenceWorkspace.style.display = 'block';
+
+                if (!lastGraphData) {
+                    analyzeInterferenceGraph();
+                } else if (visNetworkInstance) {
+                    setTimeout(() => {
+                        visNetworkInstance.fit({ animation: { duration: 300 } });
+                    }, 80);
+                }
+            }
+        }
+
+        function onPresetChange(key) {
+            if (GRAPH_PRESETS[key]) {
+                document.getElementById('graph-input').value = GRAPH_PRESETS[key];
+                analyzeInterferenceGraph();
+            }
+        }
+
+        function clearGraphEditor() {
+            document.getElementById('graph-input').value = '';
+            const selector = document.getElementById('preset-selector');
+            if (selector) selector.value = 'custom';
+            document.getElementById('graph-metric-nodes').textContent = '0';
+            document.getElementById('graph-metric-edges').textContent = '0';
+            document.getElementById('graph-status-text').textContent = 'Ingresa una lista de adyacencia';
+            document.getElementById('graph-color-count-badge').textContent = '0 colores';
+            document.getElementById('color-classes-container').innerHTML = '';
+            document.getElementById('graph-table-body').innerHTML = '';
+            if (visNetworkInstance) {
+                visNetworkInstance.destroy();
+                visNetworkInstance = null;
+            }
+            const container = document.getElementById('vis-network-canvas');
+            if (container) container.innerHTML = '';
+            lastGraphData = null;
+        }
+
+        async function analyzeInterferenceGraph() {
+            const inputText = document.getElementById('graph-input').value.trim();
+            if (!inputText) {
+                showError("Por favor ingresa una lista de adyacencia.");
+                return;
+            }
+
+            const calcBtn = document.getElementById('calc-color-btn');
+            if (calcBtn) calcBtn.disabled = true;
+
+            try {
+                const response = await fetch('/interference-graph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adjacency_list: inputText })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    const errorMsg = data.detail || (typeof data === 'string' ? data : 'Error al procesar el grafo.');
+                    showError("Error en Grafo de Interferencia: " + errorMsg);
+                    const statusText = document.getElementById('graph-status-text');
+                    if (statusText) statusText.textContent = 'Error: ' + errorMsg;
+                    const statusBadge = document.getElementById('graph-status-badge');
+                    if (statusBadge) {
+                        statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                        statusBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+                        statusBadge.style.color = '#f87171';
+                    }
+                    return;
+                }
+
+                lastGraphData = data;
+
+                // Actualizar métricas
+                const numNodes = data.total_nodes ?? data.num_nodes ?? (data.nodes ? data.nodes.length : 0);
+                const numEdges = data.total_edges ?? data.num_edges ?? (data.edges ? data.edges.length : 0);
+                document.getElementById('graph-metric-nodes').textContent = numNodes;
+                document.getElementById('graph-metric-edges').textContent = numEdges;
+
+                const statusBadge = document.getElementById('graph-status-badge');
+                if (statusBadge) {
+                    statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+                    statusBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+                    statusBadge.style.color = '#34d399';
+                }
+
+                const statusText = (data.verified_valid || data.success) 
+                    ? `¡Coloreo óptimo verificado! (χ = ${data.chromatic_number})` 
+                    : `Coloreo calculado (χ = ${data.chromatic_number})`;
+                document.getElementById('graph-status-text').textContent = statusText;
+                document.getElementById('graph-color-count-badge').textContent = `${data.chromatic_number} ${data.chromatic_number === 1 ? 'color' : 'colores'}`;
+
+                // Renderizar distribución de colores y clases
+                const colorDistribution = data.color_distribution || data.color_classes || [];
+                renderColorClasses(colorDistribution);
+
+                // Renderizar tabla de asignación de registros
+                renderGraphTable(data.node_assignments || []);
+
+                // Renderizar grafo interactivo con Vis.js
+                renderVisNetwork(data);
+
+            } catch (err) {
+                console.error(err);
+                showError("Ocurrió un error inesperado al analizar el grafo: " + err.message);
+            } finally {
+                if (calcBtn) calcBtn.disabled = false;
+            }
+        }
+
+        function renderColorClasses(colorClasses) {
+            const container = document.getElementById('color-classes-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            (colorClasses || []).forEach(cc => {
+                const hexColor = cc.color_hex || cc.hex_color || '#38bdf8';
+                const regName = cc.register_name || cc.register || 'R?';
+                const colorName = cc.color_name || 'Color';
+                const varCount = cc.count ?? (cc.nodes ? cc.nodes.length : 0);
+
+                const item = document.createElement('div');
+                item.className = 'color-class-item';
+                item.style.cursor = 'pointer';
+                item.title = `Haz clic para seleccionar las variables de ${regName} en el grafo`;
+
+                const left = document.createElement('div');
+                left.className = 'color-class-left';
+
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch-box';
+                swatch.style.background = hexColor;
+
+                const info = document.createElement('div');
+
+                const title = document.createElement('div');
+                title.className = 'color-class-title';
+                title.textContent = `${colorName} • ${regName}`;
+
+                const nodes = document.createElement('div');
+                nodes.className = 'color-class-nodes';
+                nodes.textContent = (cc.nodes || []).join(', ');
+
+                info.appendChild(title);
+                info.appendChild(nodes);
+
+                left.appendChild(swatch);
+                left.appendChild(info);
+
+                const badge = document.createElement('div');
+                badge.className = 'color-class-badge';
+                badge.textContent = `${varCount} vars`;
+
+                item.appendChild(left);
+                item.appendChild(badge);
+
+                item.onclick = () => {
+                    if (visNetworkInstance && cc.nodes && cc.nodes.length > 0) {
+                        visNetworkInstance.selectNodes(cc.nodes);
+                    }
+                };
+
+                container.appendChild(item);
+            });
+        }
+
+        function renderGraphTable(assignments) {
+            const tbody = document.getElementById('graph-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            (assignments || []).forEach(na => {
+                const regName = na.register_name || na.register || 'R?';
+                const hexColor = na.color_hex || na.hex_color || '#38bdf8';
+                const colorName = na.color_name || 'Color';
+                const deg = na.degree ?? 0;
+
+                const row = document.createElement('tr');
+                row.id = `row-node-${na.node}`;
+                row.style.cursor = 'pointer';
+                row.title = 'Haz clic para enfocar este nodo en el grafo';
+                row.onclick = () => {
+                    if (visNetworkInstance) {
+                        visNetworkInstance.selectNodes([na.node]);
+                        visNetworkInstance.focus(na.node, {
+                            scale: 1.25,
+                            animation: { duration: 400, easingFunction: 'easeInOutQuad' }
+                        });
+                    }
+                };
+                row.innerHTML = `
+                    <td style="padding: 0.45rem 0.6rem; font-weight: 700; color: #f8fafc;">${escapeHtml(na.node)}</td>
+                    <td style="padding: 0.45rem 0.6rem; color: #94a3b8; font-family: var(--mono-font);">${deg}</td>
+                    <td style="padding: 0.45rem 0.6rem; color: #a855f7; font-weight: 600;">${escapeHtml(regName)}</td>
+                    <td style="padding: 0.45rem 0.6rem;">
+                        <span style="display: inline-flex; align-items: center; gap: 0.45rem;">
+                            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: ${hexColor}; box-shadow: 0 0 6px ${hexColor}88;"></span>
+                            <span style="color: #cbd5e1; font-size: 0.78rem;">${escapeHtml(colorName)}</span>
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderVisNetwork(data) {
+            const container = document.getElementById('vis-network-canvas');
+            if (!container || typeof vis === 'undefined') return;
+
+            if (visNetworkInstance) {
+                visNetworkInstance.destroy();
+                visNetworkInstance = null;
+            }
+            container.innerHTML = '';
+
+            const assignmentMap = {};
+            (data.node_assignments || []).forEach(a => {
+                assignmentMap[a.node] = a;
+            });
+
+            const nodesArray = (data.nodes || []).map(nodeName => {
+                const a = assignmentMap[nodeName] || {};
+                const hexColor = a.color_hex || a.hex_color || '#38bdf8';
+                const regName = a.register_name || a.register || 'R?';
+                const colorName = a.color_name || 'Color';
+                const degree = a.degree ?? 0;
+
+                const bgCol = isColorMode ? hexColor : '#334155';
+                const borderCol = isColorMode ? '#ffffff' : '#64748b';
+
+                return {
+                    id: nodeName,
+                    label: nodeName,
+                    title: `Variable: ${nodeName}\nRegistro: ${regName}\nColor: ${colorName}\nGrado: ${degree}`,
+                    color: {
+                        background: bgCol,
+                        border: borderCol,
+                        highlight: {
+                            background: bgCol,
+                            border: '#ffffff'
+                        },
+                        hover: {
+                            background: bgCol,
+                            border: '#ffffff'
+                        }
+                    },
+                    font: {
+                        color: '#ffffff',
+                        size: 16,
+                        face: 'Inter, system-ui, -apple-system, sans-serif'
+                    },
+                    borderWidth: 2.5,
+                    borderWidthSelected: 3.5
+                };
+            });
+
+            const edgesArray = (data.edges || []).map(edge => ({
+                from: edge[0],
+                to: edge[1],
+                color: {
+                    color: 'rgba(148, 163, 184, 0.45)',
+                    highlight: '#a855f7',
+                    hover: '#38bdf8'
+                },
+                width: 2.2,
+                selectionWidth: 3.5,
+                hoverWidth: 3
+            }));
+
+            const networkData = {
+                nodes: new vis.DataSet(nodesArray),
+                edges: new vis.DataSet(edgesArray)
+            };
+
+            const options = {
+                autoResize: true,
+                height: '100%',
+                width: '100%',
+                nodes: {
+                    shape: 'circle',
+                    size: 24,
+                    shadow: {
+                        enabled: true,
+                        color: 'rgba(0, 0, 0, 0.4)',
+                        size: 8,
+                        x: 2,
+                        y: 3
+                    }
+                },
+                edges: {
+                    smooth: {
+                        enabled: true,
+                        type: 'continuous',
+                        roundness: 0.15
+                    },
+                    arrows: {
+                        to: { enabled: false },
+                        from: { enabled: false }
+                    }
+                },
+                physics: {
+                    enabled: isPhysicsEnabled,
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -40,
+                        centralGravity: 0.015,
+                        springLength: 95,
+                        springConstant: 0.08,
+                        damping: 0.4,
+                        avoidOverlap: 0.6
+                    },
+                    stabilization: {
+                        enabled: true,
+                        iterations: 150
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 80,
+                    dragNodes: true,
+                    dragView: true,
+                    zoomView: true
+                }
+            };
+
+            visNetworkInstance = new vis.Network(container, networkData, options);
+
+            if (isPhysicsEnabled) {
+                visNetworkInstance.once('stabilizationIterationsDone', function() {
+                    visNetworkInstance.fit({ animation: false });
+                });
+            } else {
+                visNetworkInstance.once('afterDrawing', function() {
+                    visNetworkInstance.fit({ animation: false });
+                });
+            }
+
+            visNetworkInstance.on('selectNode', function(params) {
+                if (!params.nodes || params.nodes.length === 0) return;
+                const nodeId = params.nodes[0];
+                const row = document.getElementById(`row-node-${nodeId}`);
+                if (row) {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    row.style.background = 'rgba(168, 85, 247, 0.25)';
+                    setTimeout(() => {
+                        row.style.background = '';
+                    }, 1200);
+                }
+            });
+        }
+
+        function fitVisNetwork() {
+            if (visNetworkInstance) {
+                visNetworkInstance.fit({
+                    animation: {
+                        duration: 500,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+            }
+        }
+
+        function toggleVisPhysics() {
+            isPhysicsEnabled = !isPhysicsEnabled;
+            const btn = document.getElementById('btn-toggle-physics');
+            const text = document.getElementById('physics-btn-text');
+            if (isPhysicsEnabled) {
+                if (btn) btn.classList.add('active');
+                if (text) text.textContent = 'Física: ON';
+            } else {
+                if (btn) btn.classList.remove('active');
+                if (text) text.textContent = 'Física: OFF';
+            }
+            if (visNetworkInstance) {
+                visNetworkInstance.setOptions({ physics: { enabled: isPhysicsEnabled } });
+            }
+        }
+
+        function toggleColorMode() {
+            isColorMode = !isColorMode;
+            const btn = document.getElementById('btn-toggle-color-mode');
+            const text = document.getElementById('color-mode-text');
+            if (isColorMode) {
+                if (btn) btn.classList.add('active');
+                if (text) text.textContent = 'Grafo coloreado';
+            } else {
+                if (btn) btn.classList.remove('active');
+                if (text) text.textContent = 'Grafo sin color';
+            }
+            if (lastGraphData) {
+                renderVisNetwork(lastGraphData);
+            }
+        }
+
+        // Eventos auxiliares para el editor del grafo
+        const graphInputEl = document.getElementById('graph-input');
+        if (graphInputEl) {
+            graphInputEl.addEventListener('input', () => {
+                const selector = document.getElementById('preset-selector');
+                if (selector) selector.value = 'custom';
+            });
+            graphInputEl.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    analyzeInterferenceGraph();
+                }
+            });
         }
     </script>
 </body>
