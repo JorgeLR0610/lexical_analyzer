@@ -95,6 +95,6 @@ class TestObjectCode(unittest.TestCase):
 
     def test_ui_exposes_download(self):
         page = TestClient(app).get('/').text
-        self.assertIn('Código objeto (U4)', page)
+        self.assertIn('Código objeto', page)
         self.assertIn('Descargar programa.asm', page)
         self.assertIn("fetch('/object-code'", page)

@@ -1341,9 +1341,9 @@
                     <div class="spinner" id="optimize-spinner"></div>
                     <span id="optimize-btn-text">Optimización</span>
                 </button>
-                <button id="object-code-btn" class="object-code-btn" onclick="analyzeObjectCode()" title="Generar código ensamblador x86-64 Intel (U4)">
+                <button id="object-code-btn" class="object-code-btn" onclick="analyzeObjectCode()" title="Generar código ensamblador x86-64 Intel">
                     <div class="spinner" id="object-code-spinner"></div>
-                    <span id="object-code-btn-text">Código objeto (U4)</span>
+                    <span id="object-code-btn-text">Código objeto</span>
                 </button>
                 <button id="goto-graph-btn" class="outline-btn" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="switchMainTab('graph')" title="Ir a Coloración de Grafos de Interferencia">
                     Grafo de interferencia
@@ -2701,7 +2701,7 @@ E: F</textarea>
                 showError(error.message);
             } finally {
                 objBtn.classList.remove('loading');
-                document.getElementById('object-code-btn-text').textContent = 'Código objeto (U4)';
+                document.getElementById('object-code-btn-text').textContent = 'Código objeto';
             }
         }
 
@@ -2725,29 +2725,16 @@ E: F</textarea>
             const banner = document.createElement('div');
             banner.className = 'glass-panel';
             banner.style.padding = '1rem 1.25rem';
-            banner.style.display = 'flex';
-            banner.style.justifyContent = 'space-between';
-            banner.style.alignItems = 'center';
-            banner.style.flexWrap = 'wrap';
-            banner.style.gap = '0.75rem';
             banner.style.borderLeft = '4px solid #ec4899';
             banner.innerHTML = `
                 <div>
                     <div style="font-weight:700; color:#f472b6; font-size:1rem; display:flex; align-items:center; gap:0.5rem;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                        Unidad 4: Generación de Código Objeto Ejecutable
+                        Generación de código objeto
                     </div>
                     <div style="color:#cbd5e1; font-size:0.85rem; margin-top:0.25rem;">
                         Entorno: <strong>${escapeHtml(data.target || 'x86-64 Linux / GNU assembler (Intel)')}</strong> | Convención: <strong>System V AMD64 ABI</strong>
                     </div>
-                </div>
-                <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <span class="badge" style="background:rgba(236,72,153,0.2); color:#f472b6; border:1px solid rgba(236,72,153,0.4); padding:0.35rem 0.75rem; border-radius:6px; font-weight:600; font-size:0.8rem;">
-                        .intel_syntax noprefix
-                    </span>
-                    <span class="badge" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); padding:0.35rem 0.75rem; border-radius:6px; font-weight:600; font-size:0.8rem;">
-                        GAS / GCC Nativo
-                    </span>
                 </div>
             `;
             container.appendChild(banner);
@@ -2761,7 +2748,7 @@ E: F</textarea>
                 <div class="section-header-bar" style="padding: 0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; background:rgba(236,72,153,0.1); border-bottom:1px solid rgba(236,72,153,0.2);">
                     <div class="section-title" style="color:#f472b6; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                        Código Objeto (.asm)
+                        Código objeto (.asm)
                     </div>
                     <div style="display:flex; gap:0.6rem; align-items:center;">
                         <button class="copy-code-btn" onclick="copyASMCode(this)" title="Copiar código ensamblador">
@@ -2778,7 +2765,112 @@ E: F</textarea>
             `;
             container.appendChild(asmCard);
 
-            // 3. Tarjeta de Tabla de Asignación de Registros
+            // 3. Tarjeta de Cuádruplas Optimizadas
+            const quadsCard = document.createElement('div');
+            quadsCard.className = 'glass-panel';
+            quadsCard.style.padding = '0';
+            quadsCard.style.overflow = 'hidden';
+
+            let quadRows = '';
+            (data.optimized_quadruples || []).forEach(q => {
+                quadRows += `
+                    <tr>
+                        <td style="color:#94a3b8; font-family:var(--mono-font); font-size:0.85rem;">#${q.index}</td>
+                        <td style="color:#cbd5e1; font-weight:600;">${escapeHtml(q.function)}</td>
+                        <td><span class="badge badge-operator" style="font-family:var(--mono-font);">${escapeHtml(q.op)}</span></td>
+                        <td style="font-family:var(--mono-font); color:#38bdf8;">${escapeHtml(q.arg1 || '-')}</td>
+                        <td style="font-family:var(--mono-font); color:#38bdf8;">${escapeHtml(q.arg2 || '-')}</td>
+                        <td style="font-family:var(--mono-font); font-weight:600; color:#34d399;">${escapeHtml(q.result || '-')}</td>
+                        <td style="font-family:var(--mono-font); font-size:0.85rem; color:#a5b4fc;">${escapeHtml(q.formatted || '')}</td>
+                    </tr>
+                `;
+            });
+
+            quadsCard.innerHTML = `
+                <div class="section-header-bar" style="padding: 0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; background:rgba(245,158,11,0.1); border-bottom:1px solid rgba(245,158,11,0.2);">
+                    <div class="section-title" style="color:#fbbf24; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Cuádruplas optimizadas (${(data.optimized_quadruples || []).length} instrucciones)
+                    </div>
+                    <div style="display:flex; gap:0.6rem; align-items:center;">
+                        <button class="copy-code-btn" onclick="copyOptimizedQuads(this)" title="Copiar cuádruplas optimizadas">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                            <span>Copiar cuádruplas</span>
+                        </button>
+                        <button class="download-ir-btn" onclick="downloadOptimizedIRFromObjectCode()" title="Descargar optimizado.ir">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Descargar optimizado.ir</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container" style="max-height: 380px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Función</th>
+                                <th>Operador</th>
+                                <th>Arg 1</th>
+                                <th>Arg 2</th>
+                                <th>Resultado</th>
+                                <th>Formato Triplo / Cuádruplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>${quadRows || '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:1.5rem;">No hay cuádruplas generadas.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            `;
+            container.appendChild(quadsCard);
+
+            // 4. Tarjeta de Optimizaciones Aplicadas
+            const transCard = document.createElement('div');
+            transCard.className = 'glass-panel';
+            transCard.style.padding = '0';
+            transCard.style.overflow = 'hidden';
+
+            let transRows = '';
+            const transformations = data.transformations || [];
+            if (transformations.length > 0) {
+                transformations.forEach(t => {
+                    transRows += `
+                        <tr>
+                            <td style="color:#94a3b8; font-family:var(--mono-font); font-size:0.85rem;">#${t.step}</td>
+                            <td style="color:#cbd5e1; font-weight:600;">${escapeHtml(t.function || 'main')}</td>
+                            <td><span class="badge badge-keyword" style="background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.35);">${escapeHtml(t.technique)}</span></td>
+                            <td><code style="background:rgba(239,68,68,0.12); color:#fca5a5; padding:0.2rem 0.45rem; border-radius:4px; font-family:var(--mono-font); font-size:0.82rem;">${escapeHtml(t.original_code)}</code></td>
+                            <td><code style="background:rgba(16,185,129,0.12); color:#86efac; padding:0.2rem 0.45rem; border-radius:4px; font-family:var(--mono-font); font-size:0.82rem;">${escapeHtml(t.optimized_code)}</code></td>
+                            <td style="font-size:0.85rem; color:#cbd5e1; line-height:1.4;">${escapeHtml(t.justification)}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            transCard.innerHTML = `
+                <div class="section-header-bar" style="padding: 0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; background:rgba(99,102,241,0.1); border-bottom:1px solid rgba(99,102,241,0.2);">
+                    <div class="section-title" style="color:#818cf8; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        Optimizaciones aplicadas (${transformations.length} transformaciones)
+                    </div>
+                </div>
+                <div class="table-container" style="max-height: 380px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Función</th>
+                                <th>Técnica</th>
+                                <th>Código Original</th>
+                                <th>Código Optimizado</th>
+                                <th>Justificación</th>
+                            </tr>
+                        </thead>
+                        <tbody>${transRows || '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:1.5rem;">No se requirieron transformaciones adicionales de plegado o propagación en este código.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            `;
+            container.appendChild(transCard);
+
+            // 5. Tarjeta de Tabla de Asignación de Registros
             const regCard = document.createElement('div');
             regCard.className = 'glass-panel';
             regCard.style.padding = '0';
@@ -2842,7 +2934,7 @@ E: F</textarea>
             execCard.innerHTML = `
                 <div style="font-weight:700; color:#38bdf8; font-size:0.95rem; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                    Guía de compilación y ejecución nativa en Linux x86-64
+                    Compilación y ejecución en Linux x86-64
                 </div>
                 <div style="background:#090d16; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.85rem 1rem; font-family:var(--mono-font); font-size:0.85rem; color:#a5b4fc; line-height:1.6;">
                     <div style="color:#64748b;"># 1. Ensamblar el archivo objeto con GNU Assembler (vía GCC):</div>
@@ -2899,6 +2991,41 @@ E: F</textarea>
                 return;
             }
             navigator.clipboard.writeText(lastObjectCodeData.assembly).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span style="color:#10b981;">¡Copiado!</span>
+                `;
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            }).catch(() => {
+                showError("No se pudo copiar al portapapeles.");
+            });
+        }
+
+        function downloadOptimizedIRFromObjectCode() {
+            if (!lastObjectCodeData || !lastObjectCodeData.optimized_quadruples || lastObjectCodeData.optimized_quadruples.length === 0) {
+                showError("No hay cuádruplas optimizadas disponibles para descargar.");
+                return;
+            }
+            const lines = lastObjectCodeData.optimized_quadruples.map(q => `${q.function}: ${q.formatted}`);
+            const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'optimizado.ir';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyOptimizedQuads(btn) {
+            if (!lastObjectCodeData || !lastObjectCodeData.optimized_quadruples || lastObjectCodeData.optimized_quadruples.length === 0) {
+                showError("No hay cuádruplas disponibles para copiar.");
+                return;
+            }
+            const text = lastObjectCodeData.optimized_quadruples.map(q => `${q.function}: ${q.formatted}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
                 const originalHtml = btn.innerHTML;
                 btn.innerHTML = `
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
