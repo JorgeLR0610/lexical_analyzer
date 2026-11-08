@@ -1,206 +1,134 @@
 # Guía para Agentes y Desarrolladores (AGENTS.md)
 
-Este documento es la referencia principal para agentes de inteligencia artificial y desarrolladores que interactúan, extienden o mantienen este repositorio. Contiene la guía operativa, comandos indispensables, convenciones internas de código y pautas de seguridad.
+Referencia técnica compacta para agentes de IA y desarrolladores. Diseñada para comprender la arquitectura, ejecutar comandos esenciales y extender el compilador de manera rápida y segura.
 
 ---
 
 ## 1. Visión General del Proyecto
 
-- **Naturaleza**: Compilador interactivo con interfaz web para un subconjunto representativo del lenguaje de programación **Go (Golang)**.
-- **Materia / Contexto**: Lenguajes y Autómatas II (LYA2).
-- **Lenguaje base**: Python 3.14 (`requires-python = ">=3.14"`).
-- **Herramientas centrales**:
-  - [SLY (Sly Lex Yacc) 0.5](https://github.com/dabeaz/sly): Generación de analizadores léxico y sintáctico (LR parser).
-  - [FastAPI 0.133+](https://fastapi.tiangolo.com/): Backend REST para exponer cada fase del compilador.
-  - [Pydantic v2](https://docs.pydantic.dev/): Validación estricta de esquemas de entrada y salida.
-  - [Mermaid.js](https://mermaid.js.org/): Renderizado visual en el navegador del AST y los Grafos de Flujo de Control (CFG).
-  - Gestor de dependencias: `uv` (y compatibilidad con `pip` / `pyproject.toml`).
+- **Naturaleza**: Compilador interactivo y asignador de registros web para un subconjunto representativo de **Go (Golang)**.
+- **Contexto**: Lenguajes y Autómatas II (LYA2).
+- **Entorno**: Python 3.14 (`requires-python = ">=3.14"`), gestionado con `uv` / `.venv`.
+- **Rama principal activa**: `main`.
+- **Stack Técnico**:
+  - **Léxico y Sintáctico**: [SLY (Sly Lex Yacc) 0.5](https://github.com/dabeaz/sly) (LR Parser).
+  - **Backend REST**: [FastAPI 0.133+](https://fastapi.tiangolo.com/) y validación con [Pydantic v2](https://docs.pydantic.dev/).
+  - **Visualización**: [Vis.js Network](https://visjs.org/) (grafos de fuerza interactivos) y [Mermaid.js](https://mermaid.js.org/) (AST y CFG).
 
 ---
 
-## 2. Cheat-Sheet de Comandos Operativos
+## 2. Comandos Operativos Indispensables
 
-Siempre que trabajes en este repositorio, utiliza el entorno virtual ubicado en `.venv`.
+Todos los comandos deben ejecutarse desde la raíz del proyecto usando el entorno `.venv`.
 
-### 2.1. Entorno de Ejecución
 ```bash
-# Activar entorno virtual
-source .venv/bin/activate   # Linux / macOS
-# o en Windows: .venv\Scripts\Activate.ps1
-
-# Ejecutar con el binario directo del venv (recomendado para scripts/comandos desatendidos):
-.venv/bin/python ...
-```
-
-### 2.2. Servidor Web / Aplicación
-```bash
-# Iniciar servidor FastAPI con recarga en caliente (puerto 8000 por defecto)
+# 1. Iniciar servidor FastAPI con recarga en caliente (puerto 8000):
 .venv/bin/python app/main.py
+# o: .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
-# Alternativa mediante uvicorn directo:
-.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-Una vez iniciado, la aplicación está accesible en: `http://localhost:8000`.
+# 2. Ejecutar la suite completa de pruebas unitarias (65 pruebas requeridas):
+.venv/bin/python -m unittest discover tests -v
 
-### 2.3. Suite de Pruebas Unitarias
-El proyecto utiliza el módulo nativo `unittest` de Python. **Toda modificación debe validar que las 57 pruebas pasen sin fallos.**
-
-```bash
-# Ejecutar todas las pruebas del proyecto (57 pruebas):
-.venv/bin/python -m unittest discover tests
-
-# Ejecutar módulos específicos de prueba:
-.venv/bin/python -m unittest tests/test_lexer_parser.py   # Léxico y sintáctico (30 tests)
-.venv/bin/python -m unittest tests/test_semantic.py       # Análisis semántico y scopes (12 tests)
-.venv/bin/python -m unittest tests/test_ir.py             # Generación de TAC, triplos, cuádruplos (7 tests)
-.venv/bin/python -m unittest tests/test_optimizer.py      # CFG y pases de optimización U3 (8 tests)
+# 3. Ejecutar suites específicas:
+.venv/bin/python -m unittest tests/test_lexer_parser.py         # Léxico y sintáctico (30 tests)
+.venv/bin/python -m unittest tests/test_semantic.py             # Semántico y scopes (12 tests)
+.venv/bin/python -m unittest tests/test_ir.py                   # TAC, triplos, cuádruplos (7 tests)
+.venv/bin/python -m unittest tests/test_optimizer.py            # CFG y optimizaciones U3 (8 tests)
+.venv/bin/python -m unittest tests/test_interference_graph.py  # Grafos de interferencia U4 (8 tests)
 ```
 
 ---
 
-## 3. Arquitectura del Compilador y Flujo de Datos
+## 3. Arquitectura del Pipeline y Datos
 
-El compilador se organiza en un pipeline lineal de 5 etapas acopladas mediante funciones de alto nivel:
+El compilador procesa el código a través de 6 etapas acopladas mediante modelos Pydantic:
 
 ```mermaid
 flowchart LR
-    SRC["Código Go (.go)"] --> Lexer["1. Lexer\n(lexer.py)"]
+    Go["Go (.go)"] --> Lexer["1. Lexer\n(lexer.py)"]
     Lexer --> Parser["2. Parser\n(parser.py)"]
-    Parser --> Semantic["3. Semantic\n(semantic.py)"]
-    Semantic --> IR["4. IR Generator\n(ir_generator.py)"]
-    IR --> Optimizer["5. Optimizer\n(optimizer.py)"]
+    Parser --> Sem["3. Semántica\n(semantic.py)"]
+    Sem --> IR["4. IR Generator\n(ir_generator.py)"]
+    IR --> Opt["5. Optimizador\n(optimizer.py)"]
     
-    subgraph Salidas ["Modelos Pydantic (schemas.py)"]
-        Lexer --> LexOut["LexerResponse\n(tokens, errores)"]
-        Parser --> ParseOut["ParseResponse\n(AST json & mermaid)"]
-        Semantic --> SemOut["SemanticResponse\n(tabla de símbolos)"]
-        IR --> IROut["IRResponse\n(TAC, triples, quads, postfix)"]
-        Optimizer --> OptOut["OptimizationResponse\n(CFG, métricas, transforms)"]
-    end
+    Adj["Lista Adyacencia"] --> Interf["6. Interferencia\n(interference_graph.py)"]
 ```
 
-### 3.1. Estructura de Directorios
+| Fase | Archivo Core | Entrada | Salida Principal (Pydantic / UI) |
+| :--- | :--- | :--- | :--- |
+| **1. Léxico** | `app/core/lexer.py` | Código fuente Go | `LexerResponse` (tokens categorizados y errores) |
+| **2. Sintáctico** | `app/core/parser.py` | Tokens | `ParseResponse` (AST tuplas, JSON y diagrama Mermaid) |
+| **3. Semántico** | `app/core/semantic.py` | AST | `SemanticResponse` (tabla de símbolos y chequeo de tipos) |
+| **4. Código Intermedio** | `app/core/ir_generator.py` | AST válido | `IRResponse` (TAC, tripletas, cuádruplos y postfijo) |
+| **5. Optimización (CFG)** | `app/core/optimizer.py` | Cuádruplos IR | `OptimizationResponse` (CFG Mermaid, métricas, transforms) |
+| **6. Asignación Registros**| `app/core/interference_graph.py`| Lista Adyacencia | `InterferenceGraphResponse` (coloreo óptimo $\chi$, Vis.js) |
+
+### Estructura de Directorios
 
 ```text
 .
 ├── app/
-│   ├── api/
-│   │   ├── routes.py         # Endpoints FastAPI (/tokenize, /parse, /semantic, /ir, /optimize, exports)
-│   │   └── schemas.py        # Modelos Pydantic v2 de entrada y salida
-│   ├── core/
-│   │   ├── lexer.py          # Clase MyLexer (SLY) y función analyze_code()
-│   │   ├── parser.py         # Clase MyParser (SLY) y función analyze_syntax()
-│   │   ├── semantic.py       # SemanticAnalyzer, Scope, SymbolRecord y analyze_semantics()
-│   │   ├── ir_generator.py   # IRGenerator, Quadruple y generate_ir()
-│   │   └── optimizer.py      # IROptimizer, BasicBlock, ControlFlowGraph, Quad y optimize_code()
-│   ├── templates/
-│   │   └── index.html        # SPA interactiva con CSS Vanilla, JS y Mermaid.js
-│   └── main.py               # Punto de entrada de la aplicación FastAPI
-├── tests/                    # Suite de 56 pruebas con unittest
-│   ├── test_lexer_parser.py
-│   ├── test_semantic.py
-│   ├── test_ir.py
-│   └── test_optimizer.py
-├── ejemplos/                 # Archivos .go e .ir de demostración y pruebas integradoras
-│   ├── aritmetica.ir
-│   ├── if_else.ir
-│   ├── for_loop.ir
-│   └── u3/
-│       ├── ejemplo_integrador.go
-│       ├── before.ir
-│       └── after.ir
-├── AGENTS.md                 # Este documento (instrucciones para agentes)
-├── current-state.md          # Radiografía exhaustiva del estado técnico del proyecto
-├── README.md                 # Documentación general para humanos
-├── pyproject.toml            # Especificación de proyecto Python y dependencias
-└── uv.lock                   # Lockfile determinista para uv
+│   ├── api/routes.py              # Endpoints REST (/tokenize, /parse, /semantic, /ir, /optimize, /interference-graph)
+│   ├── api/schemas.py             # Modelos de validación Pydantic v2
+│   ├── core/                      # Módulos del compilador (lexer, parser, semantic, ir, optimizer, interference)
+│   ├── templates/index.html       # SPA interactiva (Compilador Go + Visualizador Vis.js)
+│   └── main.py                    # Punto de entrada FastAPI
+├── tests/                         # Suite de 65 pruebas unitarias
+├── ejemplos/                      # Casos .go, .ir y entregables de Unidad 3
+├── README.md                      # Documentación para usuarios
+├── AGENTS.md                      # Esta guía técnica para agentes
+└── pyproject.toml / uv.lock       # Dependencias del proyecto
 ```
 
 ---
 
 ## 4. Convenciones Internas y Estructuras de Datos
 
-### 4.1. AST (Árbol de Sintaxis Abstracta)
-- Los nodos del AST generados por `parser.py` son representados como **tuplas etiquetadas**:
-  - Nodo raíz: `('program', [top_level_items...])`
-  - Declaración de variable: `('var_decl', name, data_type, init_expr, line)`
-  - Declaración corta: `('short_var_decl', name, expr, line)`
-  - Declaración de función: `('func_decl', name, [(param, type)...], return_type, [body_stmts...])`
-  - Condicional: `('if', condition_expr, then_block, else_block, line)`
-  - Bucle: `('for_three', init, cond, post, body, line)` o `('for_cond', cond, body, line)` o `('for_inf', body, line)`
-  - Operación binaria: `('binary_op', op, left_node, right_node, line)`
-  - Literal: `('literal', lit_type, value, line)`
+### 4.1. AST (`parser.py`)
+Representado como tuplas etiquetadas:
+- Programa: `('program', [items...])`
+- Declaraciones: `('var_decl', name, type, init, line)`, `('short_var_decl', name, expr, line)`
+- Funciones: `('func_decl', name, [(param, type)...], return_type, [body...])`
+- Control: `('if', cond, then_blk, else_blk, line)`, `('for_three', init, cond, post, body, line)`
+- Expresiones: `('binary_op', op, left, right, line)`, `('literal', type, value, line)`
 
-### 4.2. Jerarquía de Ámbitos (Scopes en `semantic.py`)
-- Los scopes siguen una cadena de resolución con referencia a `parent`:
-  - Raíz: `"global"`
-  - Funciones: `"local:<nombre_funcion>"` (ej. `"local:ejecutar"`)
-  - Bloques anidados: `"local:<nombre_funcion>:if"`, `"local:<nombre_funcion>:for"`
-- Métodos clave de `Scope`:
-  - `define(name, data_type, line)`: Registra el símbolo en el ámbito actual; falla si ya existe en dicho ámbito.
-  - `lookup(name)`: Busca el símbolo recursivamente hacia los ámbitos padres.
-  - `lookup_current(name)`: Solo busca en el ámbito actual.
+### 4.2. Jerarquía de Scopes (`semantic.py`)
+- Cadenas con puntero a `parent`: `"global"` $\rightarrow$ `"local:<func_name>"` $\rightarrow$ `"local:<func_name>:if"`.
+- Métodos: `scope.define(name, type, line)`, `scope.lookup(name)` (recursivo), `scope.lookup_current(name)`.
 
-### 4.3. Cuádruplos y Código Intermedio
-Existen dos representaciones de cuádruplos optimizadas para su respectivo módulo:
-1. `ir_generator.py` -> `Quadruple(index, op, arg1, arg2, result)`
-   - Formato textual Triplo: `#{index}  ({op}, {arg1}, {arg2}, {result})`
-2. `optimizer.py` -> `Quad(op, arg1, arg2, result, block_id)`
-   - Vinculado al bloque básico del CFG (`block_id`, e.g. `"B1"`, `"B2"`).
-   - Métodos: `to_tac()` para convertir a Three-Address Code y `clone()` para transformaciones inmutables.
+### 4.3. Cuádruplos y TAC
+- `ir_generator.py`: `Quadruple(index, op, arg1, arg2, result)` con triplos format `#(idx) (op, a1, a2, res)`.
+- `optimizer.py`: `Quad(op, arg1, arg2, result, block_id)` con `.to_tac()` y `.clone()`.
+- Operadores TAC: aritméticos (`+`, `*`, etc.), saltos (`label`, `goto`, `ifFalse`, `ifTrue`) y llamadas (`param`, `call`, `return`).
 
-### 4.4. Operadores TAC estándar
-- Aritméticos y relacionales: `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `<=`, `>`, `>=`
-- Saltos y etiquetas: `label`, `goto`, `ifFalse`, `ifTrue`
-- Funciones: `param`, `call`, `return`, `func_begin`, `func_end`
+### 4.4. Grafos de Interferencia y Registros (`interference_graph.py`)
+- **Parser**: Soporta `A: B, C`, `A: B C`, `A-B`, comentarios `#` y nodos aislados. Garantiza no-direccionalidad simétrica.
+- **Coloración Mínima**: Heurística DSATUR inicial + Branch & Bound exhaustivo para garantizar el número cromático exacto $\chi(G)$.
+- **Mapeo**: Cada color se asigna a un registro CPU ($R_1, R_2, \dots$) y paleta visual de alto contraste.
 
 ---
 
-## 5. Protocolos para Extender el Compilador
+## 5. Protocolo Rápido de Extensión
 
-### 5.1. Cómo añadir una nueva construcción sintáctica
-Cuando necesites añadir una nueva característica del subconjunto de Go:
-1. **Léxico (`app/core/lexer.py`)**:
-   - Si requiere nuevas palabras reservadas o símbolos, añádelos a `tokens` o `literals`.
-   - Si es palabra reservada, mapea el string en `ID['keyword'] = TOKEN`.
-2. **Sintáctico (`app/core/parser.py`)**:
-   - Define la regla gramatical con `@_('...')`.
-   - Retorna una tupla representativa para el AST que preserve el número de línea: `line = getattr(p, 'lineno', 1)`.
-   - Actualiza el generador Mermaid del AST si el nodo requiere visualización específica.
-3. **Semántico (`app/core/semantic.py`)**:
-   - Agrega el handler correspondiente en el visitor de `SemanticAnalyzer` (`_visit_stmt` o `_infer_type`).
-   - Verifica compatibilidad de tipos y registra o consulta los símbolos en el `current_scope`.
-4. **Código Intermedio (`app/core/ir_generator.py`)**:
-   - Agrega la emisión de cuádruplos/TAC en `_generate_stmt` o `_generate_expr`.
-5. **Optimizador (`app/core/optimizer.py`)**:
-   - Si la nueva instrucción involucra flujo de control (saltos), asegúrate de que sea reconocida como líder de bloque o salto en `from_quads`.
-6. **Pruebas (`tests/`)**:
-   - Escribe casos de prueba en el archivo de test correspondiente y corre `.venv/bin/python -m unittest discover tests`.
-
-### 5.2. Cómo añadir una nueva técnica de optimización
-En `app/core/optimizer.py`:
-1. Crea un método privado en `IROptimizer`, e.g., `_apply_mi_optimizacion(self, quads: list[Quad]) -> tuple[list[Quad], bool]`.
-2. Devuelve `(nuevos_quads, modificado: bool)`.
-3. Registra cada optimización efectuada llamando a:
-   ```python
-   self.add_transformation(
-       block_id=quad.block_id,
-       technique="Nombre de la Técnica",
-       orig=quad.to_tac(),
-       opt=nuevo_quad.to_tac(), # o "" si fue eliminada
-       just="Justificación técnica de la regla aplicada"
-   )
-   ```
-4. Agrega la llamada a tu método dentro del bucle iterativo de `optimize(self, quads)` en el orden correspondiente.
-5. Agrega pruebas unitarias en `tests/test_optimizer.py`.
+1. **Añadir Sintaxis (Go)**:
+   - Tokens en `lexer.py` $\rightarrow$ Reglas `@_('...')` en `parser.py` (retornando tupla AST con `line`).
+   - Visitor en `semantic.py` (`_visit_stmt` o `_infer_type`).
+   - Generación en `ir_generator.py` (`_generate_stmt` o `_generate_expr`).
+   - Bloques en `optimizer.py` si involucra saltos/líderes.
+   - Agregar test en `tests/`.
+2. **Añadir Técnica de Optimización**:
+   - Crear `_apply_tecnica(self, quads: list[Quad]) -> tuple[list[Quad], bool]` en `IROptimizer` (`optimizer.py`).
+   - Usar `self.add_transformation(block_id, "Técnica", orig, opt, just)` y `q.clone()`.
+   - Incorporar en el bucle de `optimize()` y validar con tests en `test_optimizer.py`.
+3. **Modificar Esquemas API**:
+   - Sincronizar simultáneamente `app/api/schemas.py`, el retorno en `core/` y el consumo en `app/templates/index.html`.
 
 ---
 
-## 6. Reglas de Oro para Agentes de IA
+## 6. Reglas de Oro para Agentes
 
 > [!CAUTION]
-> 1. **No romper la suite de pruebas**: Antes de finalizar cualquier tarea, corre `.venv/bin/python -m unittest discover tests`. Debe reportar `Ran 57 tests in ... OK`.
-> 2. **Advertencias de SLY**: Al inicializar el parser se imprimirán advertencias de `shift/reduce` y `reduce/reduce` (actualmente 44 y 4). Esto es normal debido a la ausencia de análisis con inserción obligatoria de `;` al estilo de la especificación completa de Go. No intentes reescribir la gramática arbitrariamente para eliminar estos warnings sin consultar.
-> 3. **Preservar la inmutabilidad de Quads en transformaciones**: Cuando optimices código en `optimizer.py`, utiliza `q.clone()` o listas nuevas para evitar efectos secundarios en pasos anteriores del log de transformaciones.
-> 4. **Tipos Pydantic sincronizados**: Cualquier cambio en la estructura de retorno de los módulos de `core/` debe verse reflejado en `app/api/schemas.py` y verificado en `app/api/routes.py`.
-> 5. **Rama activa**: El trabajo reciente y la entrega de Unidad 3 se encuentra en la rama `u3-optimizacion`. Siempre verifica la rama en la que estás trabajando con `git status` o `git branch`.
+> 1. **Mantener la Suite en Verde**: Antes de finalizar cualquier tarea, corre `.venv/bin/python -m unittest discover tests -v`. Deben pasar las **65 pruebas**.
+> 2. **Advertencias de SLY**: SLY reporta 44 conflictos shift/reduce y 4 reduce/reduce al compilar la gramática. Son esperados debido a la ausencia de inserción automática de punto y coma al estilo de la especificación completa de Go. No reescribas la gramática para intentar eliminarlos.
+> 3. **Inmutabilidad en Transformaciones**: En `optimizer.py`, nunca mutes objetos `Quad` existentes in-place; usa siempre `q.clone()` para preservar el histórico de transformaciones.
+> 4. **Confinamiento del Lienzo Vis.js**: El contenedor `#vis-network-canvas` en `index.html` debe permanecer con posicionamiento absoluto (`position: absolute; inset: 0; overflow: hidden;`) para prevenir bucles infinitos de redimensionamiento con flexbox.
