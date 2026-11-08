@@ -135,3 +135,53 @@ class InterferenceGraphResponse(BaseModel):
     color_classes: Optional[list[RegisterColorClass]] = None
     node_assignments: list[NodeAssignment] = []
     mermaid_diagram: str = ""
+
+class RegisterAssignmentResponse(BaseModel):
+    symbol: str
+    identity: str
+    data_type: str
+    function: str
+    scope: int
+    location: str
+    register_name: str = ""
+    storage: str = "register"
+
+class ObjectCodeTransformationResponse(BaseModel):
+    step: int
+    block_id: str = ""
+    function: str = ""
+    technique: str
+    original_code: str
+    optimized_code: str
+    justification: str
+
+class QuadrupleItemResponse(BaseModel):
+    function: str
+    index: int
+    op: str
+    arg1: Optional[str] = ""
+    arg2: Optional[str] = ""
+    result: Optional[str] = ""
+    formatted: str
+
+class InstructionMappingResponse(BaseModel):
+    function: str
+    quadruple: int
+    asm_line: int
+
+class InterferenceEdgeResponse(BaseModel):
+    function: str
+    nodes: list[str] = []
+
+class ObjectCodeResponse(BaseModel):
+    success: bool
+    errors: list[str] = []
+    assembly: str = ""
+    target: str = "x86-64 Linux / GNU assembler (Intel)"
+    original_quadruples: list[QuadrupleItemResponse] = []
+    optimized_quadruples: list[QuadrupleItemResponse] = []
+    register_assignments: list[RegisterAssignmentResponse] = []
+    transformations: list[ObjectCodeTransformationResponse] = []
+    instruction_mapping: list[InstructionMappingResponse] = []
+    interference_edges: list[InterferenceEdgeResponse] = []
+

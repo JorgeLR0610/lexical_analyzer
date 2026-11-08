@@ -241,6 +241,65 @@
             box-shadow: 0 6px 16px rgba(99, 102, 241, 0.45);
         }
 
+        button.object-code-btn {
+            background: #ec4899;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        }
+
+        button.object-code-btn:hover {
+            background: #db2777;
+            box-shadow: 0 6px 16px rgba(236, 72, 153, 0.45);
+        }
+
+        .download-asm-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.9rem;
+            background: #ec4899;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+            min-width: auto;
+            flex: 0 0 auto;
+        }
+
+        .download-asm-btn:hover {
+            background: #db2777;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.45);
+        }
+
+        .download-csv-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.9rem;
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            min-width: auto;
+            flex: 0 0 auto;
+        }
+
+        .download-csv-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
+        }
+
         .download-ir-btn {
             display: inline-flex;
             align-items: center;
@@ -1282,6 +1341,10 @@
                     <div class="spinner" id="optimize-spinner"></div>
                     <span id="optimize-btn-text">Optimización</span>
                 </button>
+                <button id="object-code-btn" class="object-code-btn" onclick="analyzeObjectCode()" title="Generar código ensamblador x86-64 Intel (U4)">
+                    <div class="spinner" id="object-code-spinner"></div>
+                    <span id="object-code-btn-text">Código objeto (U4)</span>
+                </button>
                 <button id="goto-graph-btn" class="outline-btn" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="switchMainTab('graph')" title="Ir a Coloración de Grafos de Interferencia">
                     Grafo de interferencia
                 </button>
@@ -1296,6 +1359,7 @@
         <div id="semantic-result-container"></div>
         <div id="ir-result-container"></div>
         <div id="optimization-result-container"></div>
+        <div id="object-code-result-container"></div>
 
         <!-- Tabla de Tokens -->
         <div id="results-section" class="glass-panel">
@@ -1544,6 +1608,8 @@ E: F</textarea>
             document.getElementById('semantic-result-container').style.display = 'none';
             document.getElementById('ir-result-container').style.display = 'none';
             document.getElementById('optimization-result-container').style.display = 'none';
+            const objContainer = document.getElementById('object-code-result-container');
+            if (objContainer) objContainer.style.display = 'none';
             document.getElementById('results-body').innerHTML = '';
             document.getElementById('symbols-body').innerHTML = '';
         }
@@ -2599,6 +2665,249 @@ E: F</textarea>
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+
+        let lastObjectCodeData = null;
+
+        async function analyzeObjectCode() {
+            const codeInput = textarea.value;
+            const objBtn = document.getElementById('object-code-btn');
+            
+            if (!codeInput.trim()) {
+                showError("El bloque de código no puede estar vacío.");
+                return;
+            }
+
+            hideAllResults();
+            objBtn.classList.add('loading');
+            document.getElementById('object-code-btn-text').textContent = 'Generando...';
+
+            try {
+                const response = await fetch('/object-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Error al comunicarse con el servidor");
+                }
+
+                const data = await response.json();
+                displayObjectCodeResult(data);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                objBtn.classList.remove('loading');
+                document.getElementById('object-code-btn-text').textContent = 'Código objeto (U4)';
+            }
+        }
+
+        function displayObjectCodeResult(data) {
+            lastObjectCodeData = data;
+            const container = document.getElementById('object-code-result-container');
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '1.5rem';
+            container.innerHTML = '';
+
+            if (!data.success) {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'error-box';
+                errDiv.innerHTML = `<strong>Error en la generación de código objeto:</strong><br>${(data.errors || []).map(e => escapeHtml(e)).join('<br>')}`;
+                container.appendChild(errDiv);
+                return;
+            }
+
+            // 1. Tarjeta Informativa / Banner de Arquitectura
+            const banner = document.createElement('div');
+            banner.className = 'glass-panel';
+            banner.style.padding = '1rem 1.25rem';
+            banner.style.display = 'flex';
+            banner.style.justifyContent = 'space-between';
+            banner.style.alignItems = 'center';
+            banner.style.flexWrap = 'wrap';
+            banner.style.gap = '0.75rem';
+            banner.style.borderLeft = '4px solid #ec4899';
+            banner.innerHTML = `
+                <div>
+                    <div style="font-weight:700; color:#f472b6; font-size:1rem; display:flex; align-items:center; gap:0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        Unidad 4: Generación de Código Objeto Ejecutable
+                    </div>
+                    <div style="color:#cbd5e1; font-size:0.85rem; margin-top:0.25rem;">
+                        Entorno: <strong>${escapeHtml(data.target || 'x86-64 Linux / GNU assembler (Intel)')}</strong> | Convención: <strong>System V AMD64 ABI</strong>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <span class="badge" style="background:rgba(236,72,153,0.2); color:#f472b6; border:1px solid rgba(236,72,153,0.4); padding:0.35rem 0.75rem; border-radius:6px; font-weight:600; font-size:0.8rem;">
+                        .intel_syntax noprefix
+                    </span>
+                    <span class="badge" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); padding:0.35rem 0.75rem; border-radius:6px; font-weight:600; font-size:0.8rem;">
+                        GAS / GCC Nativo
+                    </span>
+                </div>
+            `;
+            container.appendChild(banner);
+
+            // 2. Tarjeta con Código Ensamblador (.asm)
+            const asmCard = document.createElement('div');
+            asmCard.className = 'glass-panel';
+            asmCard.style.padding = '0';
+            asmCard.style.overflow = 'hidden';
+            asmCard.innerHTML = `
+                <div class="section-header-bar" style="padding: 0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; background:rgba(236,72,153,0.1); border-bottom:1px solid rgba(236,72,153,0.2);">
+                    <div class="section-title" style="color:#f472b6; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        Código Objeto (.asm)
+                    </div>
+                    <div style="display:flex; gap:0.6rem; align-items:center;">
+                        <button class="copy-code-btn" onclick="copyASMCode(this)" title="Copiar código ensamblador">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                            <span>Copiar ASM</span>
+                        </button>
+                        <button id="download-asm-btn" class="download-asm-btn" onclick="downloadASMFile()" title="Descargar programa.asm">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Descargar programa.asm</span>
+                        </button>
+                    </div>
+                </div>
+                <div style="max-height: 480px; overflow-y: auto; padding: 1.25rem; background: #070a12; font-family: var(--mono-font); font-size: 0.85rem; line-height: 1.5; color: #e2e8f0; white-space: pre;">${escapeHtml(data.assembly || '')}</div>
+            `;
+            container.appendChild(asmCard);
+
+            // 3. Tarjeta de Tabla de Asignación de Registros
+            const regCard = document.createElement('div');
+            regCard.className = 'glass-panel';
+            regCard.style.padding = '0';
+            regCard.style.overflow = 'hidden';
+
+            let regRows = '';
+            (data.register_assignments || []).forEach(r => {
+                const isReg = r.storage === 'register';
+                const badge = isReg
+                    ? `<span style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:0.2rem 0.5rem; border-radius:4px; font-weight:600; font-size:0.75rem;">Registro CPU</span>`
+                    : `<span style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); padding:0.2rem 0.5rem; border-radius:4px; font-weight:600; font-size:0.75rem;">Memoria (Pila/Spill)</span>`;
+                regRows += `
+                    <tr>
+                        <td style="font-family:var(--mono-font); font-weight:600; color:#38bdf8;">${escapeHtml(r.symbol)}</td>
+                        <td style="color:#94a3b8; font-size:0.8rem;">${escapeHtml(r.identity || '')}</td>
+                        <td style="color:#cbd5e1;">${escapeHtml(r.function)}</td>
+                        <td style="color:#a5b4fc;">${r.scope}</td>
+                        <td><span class="badge badge-type">${escapeHtml(r.data_type)}</span></td>
+                        <td style="font-family:var(--mono-font); font-weight:700; color:${isReg ? '#34d399' : '#fbbf24'};">${escapeHtml(r.location)}</td>
+                        <td>${badge}</td>
+                    </tr>
+                `;
+            });
+
+            regCard.innerHTML = `
+                <div class="section-header-bar" style="padding: 0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; background:rgba(16,185,129,0.1); border-bottom:1px solid rgba(16,185,129,0.2);">
+                    <div class="section-title" style="color:#34d399; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+                        Tabla de Asignación de Registros (${(data.register_assignments || []).length} variables y temporales)
+                    </div>
+                    <button class="download-csv-btn" onclick="downloadRegistersCSV()" title="Descargar registros.csv">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>Descargar registros.csv</span>
+                    </button>
+                </div>
+                <div class="table-container" style="max-height: 380px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Símbolo</th>
+                                <th>Identidad</th>
+                                <th>Función</th>
+                                <th>Ámbito</th>
+                                <th>Tipo</th>
+                                <th>Ubicación asignada</th>
+                                <th>Almacenamiento</th>
+                            </tr>
+                        </thead>
+                        <tbody>${regRows}</tbody>
+                    </table>
+                </div>
+            `;
+            container.appendChild(regCard);
+
+            // 4. Guía de Ejecución en Terminal Linux
+            const execCard = document.createElement('div');
+            execCard.className = 'glass-panel';
+            execCard.style.padding = '1.25rem';
+            execCard.style.background = 'rgba(15, 23, 42, 0.7)';
+            execCard.style.border = '1px solid rgba(255,255,255,0.1)';
+            execCard.innerHTML = `
+                <div style="font-weight:700; color:#38bdf8; font-size:0.95rem; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                    Guía de compilación y ejecución nativa en Linux x86-64
+                </div>
+                <div style="background:#090d16; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.85rem 1rem; font-family:var(--mono-font); font-size:0.85rem; color:#a5b4fc; line-height:1.6;">
+                    <div style="color:#64748b;"># 1. Ensamblar el archivo objeto con GNU Assembler (vía GCC):</div>
+                    <div style="color:#f8fafc; font-weight:600;">gcc -x assembler -c programa.asm -o programa.o</div>
+                    <div style="color:#64748b; margin-top:0.4rem;"># 2. Enlazar con la biblioteca estándar de C (SysV AMD64 ABI):</div>
+                    <div style="color:#f8fafc; font-weight:600;">gcc programa.o -o programa</div>
+                    <div style="color:#64748b; margin-top:0.4rem;"># 3. Ejecutar el binario generado:</div>
+                    <div style="color:#34d399; font-weight:700;">./programa</div>
+                </div>
+            `;
+            container.appendChild(execCard);
+        }
+
+        function downloadASMFile() {
+            if (!lastObjectCodeData || !lastObjectCodeData.assembly) {
+                showError("No hay código ensamblador disponible para descargar.");
+                return;
+            }
+            const blob = new Blob([lastObjectCodeData.assembly], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'programa.asm';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadRegistersCSV() {
+            if (!lastObjectCodeData || !lastObjectCodeData.register_assignments || lastObjectCodeData.register_assignments.length === 0) {
+                showError("No hay datos de asignación de registros para descargar.");
+                return;
+            }
+            const headers = ['symbol', 'function', 'scope', 'data_type', 'location'];
+            const rows = lastObjectCodeData.register_assignments.map(r => 
+                [r.symbol, r.function, r.scope, r.data_type, r.location].map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(',')
+            );
+            const csvContent = headers.join(',') + '\n' + rows.join('\n') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'registros.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyASMCode(btn) {
+            if (!lastObjectCodeData || !lastObjectCodeData.assembly) {
+                showError("No hay código ensamblador disponible para copiar.");
+                return;
+            }
+            navigator.clipboard.writeText(lastObjectCodeData.assembly).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span style="color:#10b981;">¡Copiado!</span>
+                `;
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            }).catch(() => {
+                showError("No se pudo copiar al portapapeles.");
+            });
         }
 
         function showError(message) {

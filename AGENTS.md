@@ -26,22 +26,26 @@ Todos los comandos deben ejecutarse desde la raíz del proyecto usando el entorn
 .venv/bin/python app/main.py
 # o: .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
-# 2. Ejecutar la suite completa de pruebas unitarias (65 pruebas requeridas):
+# 2. Ejecutar la suite completa de pruebas unitarias (79 pruebas requeridas):
 .venv/bin/python -m unittest discover tests -v
 
 # 3. Ejecutar suites específicas:
 .venv/bin/python -m unittest tests/test_lexer_parser.py         # Léxico y sintáctico (30 tests)
 .venv/bin/python -m unittest tests/test_semantic.py             # Semántico y scopes (12 tests)
 .venv/bin/python -m unittest tests/test_ir.py                   # TAC, triplos, cuádruplos (7 tests)
-.venv/bin/python -m unittest tests/test_optimizer.py            # CFG y optimizaciones U3 (8 tests)
-.venv/bin/python -m unittest tests/test_interference_graph.py  # Grafos de interferencia U4 (8 tests)
+.venv/bin/python -m unittest tests/test_optimizer.py            # CFG y optimizaciones U3 (11 tests)
+.venv/bin/python -m unittest tests/test_interference_graph.py  # Grafos de interferencia (8 tests)
+.venv/bin/python -m unittest tests/test_object_code.py         # Generación código objeto U4 (14 tests)
+
+# 4. Validar evidencia y ejecución nativa en Linux x86-64:
+.venv/bin/python ejemplos/u4/verificar.py
 ```
 
 ---
 
 ## 3. Arquitectura del Pipeline y Datos
 
-El compilador procesa el código a través de 6 etapas acopladas mediante modelos Pydantic:
+El compilador procesa el código a través de 7 etapas acopladas mediante modelos Pydantic:
 
 ```mermaid
 flowchart LR
@@ -50,8 +54,10 @@ flowchart LR
     Parser --> Sem["3. Semántica\n(semantic.py)"]
     Sem --> IR["4. IR Generator\n(ir_generator.py)"]
     IR --> Opt["5. Optimizador\n(optimizer.py)"]
+    Opt --> Obj["6. Código Objeto\n(object_code.py)"]
+    Obj --> Asm["programa.asm\nx86-64 Intel"]
     
-    Adj["Lista Adyacencia"] --> Interf["6. Interferencia\n(interference_graph.py)"]
+    Adj["Lista Adyacencia"] --> Interf["7. Interferencia\n(interference_graph.py)"]
 ```
 
 | Fase | Archivo Core | Entrada | Salida Principal (Pydantic / UI) |
@@ -61,20 +67,23 @@ flowchart LR
 | **3. Semántico** | `app/core/semantic.py` | AST | `SemanticResponse` (tabla de símbolos y chequeo de tipos) |
 | **4. Código Intermedio** | `app/core/ir_generator.py` | AST válido | `IRResponse` (TAC, tripletas, cuádruplos y postfijo) |
 | **5. Optimización (CFG)** | `app/core/optimizer.py` | Cuádruplos IR | `OptimizationResponse` (CFG Mermaid, métricas, transforms) |
-| **6. Asignación Registros**| `app/core/interference_graph.py`| Lista Adyacencia | `InterferenceGraphResponse` (coloreo óptimo $\chi$, Vis.js) |
+| **6. Código Objeto (U4)** | `app/core/object_code.py` | Cuádruplos / AST | `ObjectCodeResponse` (ASM x86-64 Intel, registros.csv, tabla de derrames) |
+| **7. Asignación Registros**| `app/core/interference_graph.py`| Lista Adyacencia | `InterferenceGraphResponse` (coloreo óptimo $\chi$, Vis.js) |
 
 ### Estructura de Directorios
 
 ```text
 .
 ├── app/
-│   ├── api/routes.py              # Endpoints REST (/tokenize, /parse, /semantic, /ir, /optimize, /interference-graph)
+│   ├── api/routes.py              # Endpoints REST (/tokenize, /parse, /semantic, /ir, /optimize, /interference-graph, /object-code)
 │   ├── api/schemas.py             # Modelos de validación Pydantic v2
-│   ├── core/                      # Módulos del compilador (lexer, parser, semantic, ir, optimizer, interference)
-│   ├── templates/index.html       # SPA interactiva (Compilador Go + Visualizador Vis.js)
+│   ├── core/                      # Módulos del compilador (lexer, parser, semantic, ir, optimizer, interference, object_code, native_ir, register_allocator)
+│   ├── templates/index.html       # SPA interactiva (Compilador Go + Código Objeto + Visualizador Vis.js)
 │   └── main.py                    # Punto de entrada FastAPI
-├── tests/                         # Suite de 65 pruebas unitarias
-├── ejemplos/                      # Casos .go, .ir y entregables de Unidad 3
+├── tests/                         # Suite de 79 pruebas unitarias
+├── ejemplos/                      # Casos .go, .ir y entregables de Unidad 3 y Unidad 4
+│   ├── u3/                        # Entregables de Optimización U3
+│   └── u4/                        # Entregables de Código Objeto U4 (integrador.go, programa.asm, registros.csv, etc.)
 ├── README.md                      # Documentación para usuarios
 ├── AGENTS.md                      # Esta guía técnica para agentes
 └── pyproject.toml / uv.lock       # Dependencias del proyecto
@@ -106,6 +115,13 @@ Representado como tuplas etiquetadas:
 - **Coloración Mínima**: Heurística DSATUR inicial + Branch & Bound exhaustivo para garantizar el número cromático exacto $\chi(G)$.
 - **Mapeo**: Cada color se asigna a un registro CPU ($R_1, R_2, \dots$) y paleta visual de alto contraste.
 
+### 4.5. Generación de Código Objeto (`object_code.py`, `register_allocator.py`, `native_ir.py`)
+- **Arquitectura**: x86-64 Linux con GNU Assembler (GAS) en sintaxis Intel (`.intel_syntax noprefix`).
+- **Registros**: Asigna registros callee-saved (`rbx`, `r12`, `r13`, `r14`, `r15`) a variables y temporales mediante análisis de vida y coloración voraz.
+- **Derrames (Spills)**: Variables excedentes se almacenan en `[rbp - offset]`.
+- **Llamadas y ABI**: System V AMD64 ABI con marco alineado a 16 bytes. Parámetros en `rdi, rsi, rdx, rcx, r8, r9` (y pila para argumentos adicionales).
+- **Protección**: Manejo en tiempo de ejecución de división por cero y wrap aritmético de 64 bits.
+
 ---
 
 ## 5. Protocolo Rápido de Extensión
@@ -128,7 +144,7 @@ Representado como tuplas etiquetadas:
 ## 6. Reglas de Oro para Agentes
 
 > [!CAUTION]
-> 1. **Mantener la Suite en Verde**: Antes de finalizar cualquier tarea, corre `.venv/bin/python -m unittest discover tests -v`. Deben pasar las **65 pruebas**.
+> 1. **Mantener la Suite en Verde**: Antes de finalizar cualquier tarea, corre `.venv/bin/python -m unittest discover tests -v`. Deben pasar las **79 pruebas**.
 > 2. **Advertencias de SLY**: SLY reporta 44 conflictos shift/reduce y 4 reduce/reduce al compilar la gramática. Son esperados debido a la ausencia de inserción automática de punto y coma al estilo de la especificación completa de Go. No reescribas la gramática para intentar eliminarlos.
 > 3. **Inmutabilidad en Transformaciones**: En `optimizer.py`, nunca mutes objetos `Quad` existentes in-place; usa siempre `q.clone()` para preservar el histórico de transformaciones.
 > 4. **Confinamiento del Lienzo Vis.js**: El contenedor `#vis-network-canvas` en `index.html` debe permanecer con posicionamiento absoluto (`position: absolute; inset: 0; overflow: hidden;`) para prevenir bucles infinitos de redimensionamiento con flexbox.

@@ -8,7 +8,8 @@ from api.schemas import (
     IRResponse,
     OptimizationResponse,
     InterferenceGraphRequest,
-    InterferenceGraphResponse
+    InterferenceGraphResponse,
+    ObjectCodeResponse
 )
 from core.lexer import analyze_code
 from core.parser import analyze_syntax
@@ -16,6 +17,9 @@ from core.semantic import analyze_semantics
 from core.ir_generator import generate_ir
 from core.optimizer import optimize_code
 from core.interference_graph import analyze_interference_graph
+from core.object_code import generate_object_code
+import csv
+import io
 
 router = APIRouter()
 
@@ -94,3 +98,40 @@ def interference_graph_endpoint(request: InterferenceGraphRequest):
     if not request.adjacency_list.strip():
         raise HTTPException(status_code=400, detail="La lista de adyacencia no puede estar vacía.")
     return analyze_interference_graph(request.adjacency_list)
+
+@router.post("/object-code", response_model=ObjectCodeResponse)
+def object_code_endpoint(request: CodeRequest):
+    if not request.code.strip():
+        raise HTTPException(status_code=400, detail="El bloque de código no puede estar vacío.")
+    return generate_object_code(request.code)
+
+@router.post("/object-code/export")
+def export_object_code_endpoint(request: CodeRequest):
+    if not request.code.strip():
+        raise HTTPException(status_code=400, detail="El bloque de código no puede estar vacío.")
+    res = generate_object_code(request.code)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=" | ".join(res.get("errors") or ["Error al generar código objeto."]))
+    return Response(
+        content=res["assembly"],
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=programa.asm"}
+    )
+
+@router.post("/object-code/export-registers")
+def export_registers_endpoint(request: CodeRequest):
+    if not request.code.strip():
+        raise HTTPException(status_code=400, detail="El bloque de código no puede estar vacío.")
+    res = generate_object_code(request.code)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=" | ".join(res.get("errors") or ["Error al generar tabla de registros."]))
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=['symbol', 'function', 'scope', 'data_type', 'location'], extrasaction='ignore')
+    writer.writeheader()
+    writer.writerows(res.get("register_assignments", []))
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=registros.csv"}
+    )
+
