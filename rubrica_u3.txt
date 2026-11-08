@@ -1,0 +1,131 @@
+Actividad Integradora de la Unidad 3
+Optimización de Código Intermedio mediante Grafo de Flujo de Control (GFG)
+Objetivo
+Aplicar la optimización de código intermedio mediante el análisis de bloques básicos y la
+construcción del Grafo de Flujo de Control (GFG), implementando técnicas de
+optimización que permitan mejorar la eficiencia del código sin alterar su comportamiento
+original.
+Instrucciones
+A partir del código intermedio proporcionado o desarrollado durante la práctica, realice las
+actividades que se describen a continuación:
+1. Presentar el código intermedio original
+Incluya el código intermedio (IR) antes de aplicar cualquier proceso de optimización.
+2. Identificar los bloques básicos
+Determine y etiquete correctamente cada bloque básico que forma parte del programa.
+3. Construir el Grafo de Flujo de Control (GFG)
+Elabore el GFG correspondiente al código analizado, identificando claramente:
+•
+•
+•
+•
+
+Nodo de entrada.
+Bloques básicos.
+Transiciones entre bloques.
+Nodos de salida, cuando corresponda.
+
+4. Aplicar técnicas de optimización
+Implemente las técnicas de optimización:
+•
+•
+•
+•
+•
+•
+
+Constant Folding.
+Propagación de Constantes.
+Eliminación de Subexpresiones Comunes.
+Eliminación de Código Muerto.
+Eliminación de Bloques Inalcanzables.
+Simplificación de Saltos.
+
+5. Elaborar la tabla de transformaciones
+Documente cada optimización realizada mediante una tabla que incluya:
+•
+•
+•
+•
+•
+•
+
+Número de transformación.
+Bloque básico involucrado.
+Técnica aplicada.
+Código original.
+Código optimizado.
+Justificación técnica.
+
+6. Presentar el código intermedio optimizado
+Muestre la versión final del código después de aplicar las optimizaciones
+correspondientes.
+7. Realizar un análisis de resultados
+Explique de manera breve:
+•
+•
+•
+•
+
+Las optimizaciones realizadas.
+Los beneficios obtenidos.
+Las instrucciones eliminadas o simplificadas.
+La contribución del GFG en el proceso de optimización.
+
+Rúbrica de Evaluación
+Criterio
+
+Descripción
+
+Valor
+
+Código intermedio original
+
+Presenta de forma clara y completa el código intermedio previo a la
+optimización.
+
+10
+
+Identificación de bloques
+básicos
+
+Determina correctamente los bloques básicos y sus límites.
+
+10
+
+Construcción del GFG
+
+Representa correctamente el flujo de control mediante nodos y aristas
+bien definidos.
+
+15
+
+Aplicación de técnicas de
+optimización
+
+Implementa correctamente las técnicas de optimización.
+
+15
+
+Tabla de transformaciones
+
+Documenta cada optimización realizada, mostrando el código antes y
+después, así como su justificación.
+
+10
+
+Código intermedio optimizado
+
+Presenta una versión optimizada funcional, coherente y consistente
+con el análisis realizado.
+
+10
+
+Análisis de resultados y
+conclusiones
+
+Explica y justifica los beneficios obtenidos mediante las
+optimizaciones aplicadas.
+
+10
+
+

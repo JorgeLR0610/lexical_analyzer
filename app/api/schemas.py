@@ -51,3 +51,87 @@ class IRResponse(BaseModel):
     triples: list[str] = []
     quadruples: list[QuadrupleResponse] = []
     postfix_expressions: list[PostfixItemResponse] = []
+
+class TransformationResponse(BaseModel):
+    step: int
+    block_id: str
+    technique: str
+    original_code: str
+    optimized_code: str
+    justification: str
+
+class BasicBlockResponse(BaseModel):
+    id: str
+    instructions: list[str]
+    successors: list[str] = []
+    predecessors: list[str] = []
+    is_unreachable: bool = False
+
+class CFGMetricsResponse(BaseModel):
+    total_instructions_before: int
+    total_instructions_after: int
+    reduction_percent: float
+    temporals_saved: int
+    cyclomatic_complexity_before: int
+    cyclomatic_complexity_after: int
+    blocks_before: int
+    blocks_after: int
+
+class OptimizationAnalysisResponse(BaseModel):
+    summary: str
+    optimizations_applied: list[str] = []
+    benefits: list[str] = []
+    instructions_analysis: str = ""
+    cfg_contribution: str = ""
+    conclusions: str = ""
+
+class OptimizationResponse(BaseModel):
+    success: bool
+    errors: list[str] = []
+    original_tac: str = ""
+    optimized_tac: str = ""
+    original_ir: str = ""
+    optimized_ir: str = ""
+    original_cfg_mermaid: str = ""
+    optimized_cfg_mermaid: str = ""
+    blocks_before: list[BasicBlockResponse] = []
+    blocks_after: list[BasicBlockResponse] = []
+    transformations: list[TransformationResponse] = []
+    metrics: CFGMetricsResponse
+    analysis: Optional[OptimizationAnalysisResponse] = None
+
+class InterferenceGraphRequest(BaseModel):
+    adjacency_list: str
+
+class RegisterColorClass(BaseModel):
+    color_id: int
+    register_name: str
+    color_name: str
+    color_hex: str
+    hex_color: Optional[str] = None
+    nodes: list[str] = []
+    count: int = 0
+
+class NodeAssignment(BaseModel):
+    node: str
+    degree: int = 0
+    register_name: str
+    color_name: str
+    color_hex: str
+    hex_color: Optional[str] = None
+
+class InterferenceGraphResponse(BaseModel):
+    success: bool
+    errors: list[str] = []
+    nodes: list[str] = []
+    edges: list[list[str]] = []
+    chromatic_number: int = 0
+    total_nodes: int = 0
+    num_nodes: Optional[int] = None
+    total_edges: int = 0
+    num_edges: Optional[int] = None
+    max_degree: int = 0
+    color_distribution: list[RegisterColorClass] = []
+    color_classes: Optional[list[RegisterColorClass]] = None
+    node_assignments: list[NodeAssignment] = []
+    mermaid_diagram: str = ""
