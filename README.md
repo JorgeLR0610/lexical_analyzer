@@ -1,23 +1,23 @@
-# Compilador, Optimizador y Asignador de Registros para Go (Golang)
+# Compilador, optimizador y asignador de registros para Go (Golang)
 
 Este proyecto es una aplicación web interactiva desarrollada en **Python 3.14** que implementa un compilador, optimizador y asignador de registros completo para un subconjunto del lenguaje de programación **Go (Golang)**. 
 
 Utiliza la librería **SLY (Sly Lex Yacc)** para las fases de análisis léxico y sintáctico, **FastAPI** para exponer cada fase del compilador mediante una API REST, **Mermaid.js** para diagramas de Árbol de Sintaxis Abstracta (AST) y Grafos de Flujo de Control (CFG), y **Vis.js Network** para la simulación física interactiva de grafos de interferencia y asignación de registros.
 
-El sistema abarca 7 fases canónicas de compilación:
+El sistema abarca 7 fases de compilación:
 1. **Análisis Léxico**: Tokenización, reconocimiento de palabras reservadas, operadores, literales, delimitadores y comentarios.
 2. **Análisis Sintáctico**: Parser LR con construcción del Árbol de Sintaxis Abstracta (AST) y visualización gráfica.
 3. **Análisis Semántico**: Tabla de símbolos jerárquica con resolución de ámbitos (*scopes*) y verificación estricta de tipos.
 4. **Código Intermedio (IR)**: Generación de Código de Tres Direcciones (TAC), Triplos, Cuádruplos y notación Postfija (RPN).
 5. **Optimización y Grafo de Flujo de Control (CFG / GFG)**: Partición formal en bloques básicos, detección de bloques inalcanzables, cálculo de complejidad ciclomática y aplicación iterativa de 6 técnicas de optimización (*Constant Folding*, propagación de constantes, eliminación de subexpresiones comunes *CSE*, eliminación de código muerto *DCE*, simplificación de saltos y eliminación de código inalcanzable).
-6. **Asignación de Registros por Coloración de Grafos de Interferencia**: Parser flexible de listas de adyacencia, cálculo matemático del número cromático mínimo $\chi(G)$ mediante el algoritmo híbrido **DSATUR + Branch & Bound**, asignación a registros de máquina ($R_1, R_2, \dots$) y visualizador dinámico con física de fuerzas en tiempo real.
-7. **Generación de Código Objeto (U4)**: Generación de código ensamblador ejecutable para arquitectura **x86-64 Linux** utilizando **GNU Assembler (GAS)** con sintaxis Intel (`.intel_syntax noprefix`), análisis de vida de variables (*liveness analysis*), asignación de registros callee-saved (`rbx`, `r12`-`r15`), gestión de derrames a pila (*spilling*), alineación del marco según System V AMD64 ABI y verificación en tiempo de ejecución.
+6. **Asignación de Registros por Coloración de Grafos de Interferencia**: Parser flexible de listas de adyacencia, cálculo matemático del número cromático mínimo $\chi(G)$ mediante el algoritmo híbrido **DSATUR + Branch & Bound**, asignación a registros de máquina ($R_1, R_2, \dots$) y visualizador dinámico con física de fuerzas.
+7. **Generación de Código Objeto**: Generación de código ensamblador ejecutable para arquitectura **x86-64 Linux** utilizando **GNU Assembler** con sintaxis Intel (`.intel_syntax noprefix`), análisis de vida de variables, asignación de registros (`rbx`, `r12`-`r15`), gestión de derrames a pila (*spilling*), alineación del marco según System V AMD64 ABI y verificación en tiempo de ejecución.
 
 ---
 
 ## Características del subconjunto de Go soportado
 
-- **Estructura del Programa**: Declaración de paquete (`package main`) e importaciones (`import "fmt"` / `import ( "fmt" )`).
+- **Estructura del programa**: Declaración de paquete (`package main`) e importaciones (`import "fmt"` / `import ( "fmt" )`).
 - **Declaraciones**:
   - Variables explícitas (`var x int = 10`, `var bandera bool`)
   - Declaraciones cortas (`x := 20`)
@@ -32,7 +32,7 @@ El sistema abarca 7 fases canónicas de compilación:
   - Relacionales: `==`, `!=`, `<`, `<=`, `>`, `>=`
   - Lógicos: `&&`, `||`, `!`
   - Asignaciones e incremento: `:=`, `=`, `+=`, `-=`, `*=`, `/=`, `++`, `--`
-- **Literales**: Enteros (`123`), flotantes (`3.14`), cadenas con comillas dobles y raw string literals con backticks, booleanos (`true`, `false`) y `nil`.
+- **Literales**: Enteros (`123`), flotantes (`3.14`), cadenas con comillas dobles y string literales con backticks, booleanos (`true`, `false`) y `nil`.
 - **Comentarios**: De una sola línea (`//...`) y multilínea (`/* ... */`).
 
 ---
@@ -43,19 +43,19 @@ La interfaz web está organizada en dos pestañas principales:
 
 1. **Compilador Go**:
    - Editor con numeración de líneas y atajo `Ctrl+Enter`.
-   - Pipeline secuencial con botones dedicados: *Análisis léxico*, *Análisis sintáctico*, *Análisis semántico*, *Código intermedio*, *Optimización (GFG / U3)* y *Código objeto (U4)*.
+   - Botones dedicados: *Análisis léxico*, *Análisis sintáctico*, *Análisis semántico*, *Código intermedio*, *Optimización* y *Código objeto*.
    - Visor interactivo del AST y diagramas comparativos del CFG Original vs CFG Optimizado.
    - Tabla de transformaciones detalladas con justificación técnica por bloque.
    - Comparadores de código TAC e IR (`antes.ir` vs `despues.ir`) con botones de copia y descarga.
-   - Panel de **Código Objeto (U4)** con visor de código ensamblador x86-64 Intel, descarga directa de `programa.asm`, tabla completa de asignación de registros y derrames con descarga de `registros.csv`, y guía de comandos para compilación nativa en Linux.
+   - Panel de **Código Objeto** con visor de código ensamblador x86-64 Intel, descarga directa de `programa.asm`, tabla completa de asignación de registros y derrames con descarga de `registros.csv`, y guía de comandos para compilación nativa en Linux.
 
-2. **Grafo de Interferencia (Asignación de Registros)**:
+2. **Grafo de interferencia (asignación de registros)**:
    - Entrada de texto para listas de adyacencia (formatos admitidos: `A: B, F`, `A: B F`, pares `A-B`, comentarios `#` y nodos aislados).
-   - Selector con 7 presets integrados (Ejemplo Guía $A-F$, Ciclo Par $C_6$, Grafo Completo $K_4$, Bipartito $K_{3,3}$, Grafo de Petersen, etc.).
+   - Selector con 7 ejemplos integrados (Ejemplo Guía $A-F$, Ciclo Par $C_6$, Grafo Completo $K_4$, Bipartito $K_{3,3}$, Grafo de Petersen, etc.).
    - Tarjetas de métricas instantáneas ($|V|$ nodos, $|E|$ aristas y certificación de $\chi(G)$).
    - Tarjetas de distribución de colores con el registro asociado ($R_1, R_2, \dots$) y variables asignadas.
    - Tabla detallada colapsable con variable, grado, registro y color.
-   - Lienzo interactivo en Vis.js con simulación física, arrastre de nodos, zoom, controles de centrado (*Ajustar*), pausa de física y alternancia de vista coloreada o monocroma.
+   - Lienzo interactivo en Vis.js con simulación física, arrastre de nodos, zoom, controles de centrado (*Botón Ajustar*), pausa de física y alternancia de vista coloreada o monocromática.
 
 ---
 
@@ -75,15 +75,12 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 ```
 
-*(Si no tienes un entorno virtual, créalo con `uv venv` o `python -m venv .venv`)*
+*(Si no se tiene un entorno virtual, crearlo con  `python -m venv .venv`)*
 
 ### 2. Instalar dependencias
 
 ```bash
-# Con uv (recomendado):
-uv sync
-
-# O con pip:
+# Con pip:
 pip install -r requirements.txt
 ```
 
@@ -96,26 +93,7 @@ python app/main.py
 
 ---
 
-## Suite de Pruebas Unitarias
-
-El proyecto cuenta con una batería de **79 pruebas automatizadas** que validan cada etapa del compilador, incluyendo la compilación y ejecución de binarios x86-64 en Linux:
-
-```bash
-# Ejecutar todas las pruebas (79 tests):
-python -m unittest discover tests -v
-
-# O por módulo:
-python -m unittest tests/test_lexer_parser.py         # Léxico y Sintáctico (30 tests)
-python -m unittest tests/test_semantic.py             # Semántica y Scopes (12 tests)
-python -m unittest tests/test_ir.py                   # TAC, Triplos y Cuádruplos (7 tests)
-python -m unittest tests/test_optimizer.py            # Bloques y CFG U3 (11 tests)
-python -m unittest tests/test_interference_graph.py  # Interferencia y Coloración (8 tests)
-python -m unittest tests/test_object_code.py         # Generación de Código Objeto x86-64 (14 tests)
-```
-
----
-
-## Compilación y Ejecución del Código Objeto en Linux x86-64
+## Compilación y ejecución del código objeto en Linux x86-64
 
 El código ensamblador emitido por el compilador utiliza la sintaxis Intel de GNU Assembler (`.intel_syntax noprefix`) y la convención de llamadas System V AMD64 ABI.
 
@@ -131,12 +109,6 @@ gcc programa.o -o programa
 # 3. Ejecutar el binario:
 ./programa
 ```
-
-También es posible reproducir y certificar todas las evidencias de la Unidad 4 automáticamente ejecutando:
-```bash
-python ejemplos/u4/verificar.py
-```
-
 ---
 
 ## Estructura del Proyecto
@@ -145,48 +117,21 @@ python ejemplos/u4/verificar.py
 .
 ├── app/
 │   ├── api/
-│   │   ├── routes.py              # Endpoints REST (/tokenize, /parse, /semantic, /ir, /optimize, /interference-graph, /object-code)
-│   │   └── schemas.py             # Modelos de validación Pydantic v2
+│   │   ├── routes.py              # Endpoints REST
+│   │   └── schemas.py             # Modelos de validación Pydantic
 │   ├── core/
 │   │   ├── lexer.py               # Analizador léxico (SLY)
 │   │   ├── parser.py              # Analizador sintáctico LR y generación de AST (SLY)
 │   │   ├── semantic.py            # Análisis semántico, scopes y tabla de símbolos
-│   │   ├── ir_generator.py        # Generación de código intermedio (TAC, triplos, cuádruplos, postfijo)
+│   │   ├── ir_generator.py        # Generación de código intermedio
 │   │   ├── optimizer.py           # Optimización de IR, bloques básicos, CFG y métricas U3
-│   │   ├── interference_graph.py  # Grafos de interferencia, DSATUR, Branch & Bound y registros
+│   │   ├── interference_graph.py  # Grafos de interferencia
 │   │   ├── native_ir.py           # IR tipado y con ámbitos para generación de código objeto
-│   │   ├── register_allocator.py  # Análisis de vida hacia atrás y asignación de registros callee-saved + derrames
-│   │   └── object_code.py         # Backend emisor de código objeto x86-64 Linux (GNU Assembler sintaxis Intel)
+│   │   ├── register_allocator.py  # Análisis de vida hacia atrás y asignación de registros
+│   │   └── object_code.py         # Backend emisor de código objeto x86-64 Linux
 │   ├── templates/
-│   │   └── index.html             # Interfaz web SPA (Compilador Go + Código Objeto + Visualizador Vis.js)
+│   │   └── index.html             # Interfaz web
 │   └── main.py                    # Punto de entrada de la aplicación FastAPI
-├── tests/                         # Suite de 79 pruebas unitarias con unittest
-│   ├── test_lexer_parser.py
-│   ├── test_semantic.py
-│   ├── test_ir.py
-│   ├── test_optimizer.py
-│   ├── test_interference_graph.py
-│   └── test_object_code.py
-├── ejemplos/                      # Archivos .go e .ir de demostración y entregables U3 y U4
-│   ├── aritmetica.ir
-│   ├── for_loop.ir
-│   ├── if_else.ir
-│   ├── u3/
-│   │   ├── ejemplo_integrador.go
-│   │   ├── before.ir
-│   │   └── after.ir
-│   └── u4/
-│       ├── integrador.go          # Programa integrador de Go para la Unidad 4
-│       ├── programa.asm           # Archivo objeto generado en sintaxis Intel
-│       ├── antes.ir               # Cuádruplas originales
-│       ├── optimizado.ir          # Cuádruplas optimizadas
-│       ├── registros.csv          # Tabla de asignación de registros y derrames
-│       ├── esperado.txt           # Salida estándar esperada
-│       ├── ejecucion.txt          # Evidencia de compilación y ejecución funcional
-│       └── verificar.py           # Script para reproducir y verificar evidencias
-├── AGENTS.md                      # Guía operativa y técnica para agentes de IA
-├── current-state.md               # Radiografía exhaustiva del estado técnico del proyecto
 ├── README.md                      # Este documento
-├── pyproject.toml                 # Configuración de dependencias y empaquetado
 └── requirements.txt               # Lista de dependencias fijadas
 ```
