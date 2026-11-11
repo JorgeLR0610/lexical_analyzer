@@ -1,4 +1,3 @@
-"""Typed, scope-resolved IR for the native backend; legacy IR stays unchanged."""
 from core.ir_generator import IRGenerator
 from core.optimizer import Quad
 

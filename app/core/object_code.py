@@ -1,4 +1,3 @@
-"""Native GNU assembler backend. Compilation never executes submitted code."""
 from core.lexer import MyLexer
 from core.parser import MyParser
 from core.semantic import SemanticAnalyzer

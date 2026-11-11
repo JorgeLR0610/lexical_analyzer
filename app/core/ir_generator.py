@@ -439,7 +439,7 @@ def generate_ir(code: str) -> IRResponse:
             postfix_expressions=[]
         )
 
-    # Validar semántica antes de generar IR
+    # Validar semántica antes de generar .ir
     semantic_analyzer = SemanticAnalyzer()
     sem_ok, sem_errors, _ = semantic_analyzer.analyze(ast, parser._line_positions)
     if not sem_ok:
@@ -452,7 +452,7 @@ def generate_ir(code: str) -> IRResponse:
             postfix_expressions=[]
         )
 
-    # Ahora sí generar IR
+    # Ahora sí generar .ir
     generator = IRGenerator()
     quads, postfix = generator.generate(ast)
 

@@ -1,10 +1,4 @@
 #type: ignore
-"""
-Módulo para el análisis y coloración óptima de grafos de interferencia
-para la asignación de registros en compiladores.
-Basado en DSATUR (Degree of Saturation) con Branch & Bound para determinar
-el número cromático mínimo exacto χ(G).
-"""
 import re
 from typing import Optional
 from api.schemas import (
@@ -13,7 +7,7 @@ from api.schemas import (
     InterferenceGraphResponse
 )
 
-# Paleta de colores distinguibles de alto contraste para tema oscuro
+# Paleta de colores
 PALETTE = [
     {"name": "Cian", "hex": "#06b6d4", "text": "#082f49", "border": "#22d3ee"},
     {"name": "Rojo", "hex": "#f43f5e", "text": "#ffffff", "border": "#fb7185"},
@@ -59,7 +53,7 @@ def parse_adjacency_list(text: str) -> tuple[list[str], list[tuple[str, str]], l
     - Soporta comentarios con '#' o '//'.
     
     Retorna: (nodes, edges, errors)
-    donde edges son tuplas normalizadas (u, v) con u < v, sin lazos ni duplicados.
+    donde edges son tuplas normalizadas (u, v) con u < v, sin lazos ni duplicados
     """
     raw_nodes_order = []
     seen_nodes = set()
@@ -91,7 +85,7 @@ def parse_adjacency_list(text: str) -> tuple[list[str], list[tuple[str, str]], l
                     errors.append(f"Línea {line_idx}: arista inválida '{clean_line}'")
                     continue
 
-        # Formato estándar 'U: V1, V2...' o 'U: V1 V2...'
+        # formato estandar como 'U: V1, V2...' o 'U: V1 V2...'
         if ':' in clean_line:
             parts = clean_line.split(':', 1)
             u = parts[0].strip()
@@ -117,7 +111,7 @@ def parse_adjacency_list(text: str) -> tuple[list[str], list[tuple[str, str]], l
                         adj_set.add(edge)
             continue
 
-        # Declaración simple de nodo aislado (ej. 'G')
+        # Declaración simple de nodo aislado (algo como solo 'G')
         tokens = [tok.strip() for tok in re.split(r'[,;\s]+', clean_line) if tok.strip()]
         for tok in tokens:
             if tok not in seen_nodes:
@@ -182,7 +176,7 @@ class InterferenceGraph:
                 c += 1
 
             colors[best_node] = c
-            # Actualizar saturación de vecinos
+            # Actualizar saturación de los nodos vecinos
             for nbr in self.neighbors[best_node]:
                 saturation[nbr].add(c)
 
@@ -196,7 +190,7 @@ class InterferenceGraph:
         if not self.nodes:
             return 0, {}
 
-        # 1. Obtener cota superior inicial con DSATUR
+        # obtener cota superior inicial con DSATUR
         heuristic_colors = self.dsatur_coloring()
         k_upper = max(heuristic_colors.values()) if heuristic_colors else 1
         best_coloring = heuristic_colors
@@ -205,9 +199,9 @@ class InterferenceGraph:
         if k_upper <= 2:
             return k_upper, best_coloring
 
-        # Cota inferior: tamaño del clan máximo clique estimado (mínimo 1, 2 si hay aristas, 3 si hay triángulos)
+        # cota inferior: tamaño del clan máximo clique estimado (mínimo 1, 2 si hay aristas, 3 si hay triángulos)
         k_lower = 1 if self.total_edges == 0 else 2
-        # Buscar triángulos (K3)
+        # buscar triángulos (K3)
         for u in self.nodes:
             if k_lower >= 3:
                 break
@@ -220,7 +214,7 @@ class InterferenceGraph:
         if k_upper == k_lower:
             return k_upper, best_coloring
 
-        # 2. Branch & Bound para buscar si es coloreable con k < k_upper
+        # Branch & Bound para buscar si es coloreable con k < k_upper
         nodes_sorted = sorted(self.nodes, key=lambda n: len(self.neighbors[n]), reverse=True)
 
         def can_color(k_target: int) -> Optional[dict[str, int]]:
@@ -251,14 +245,14 @@ class InterferenceGraph:
         return k_upper, best_coloring
 
     def verify_coloring(self, coloring: dict[str, int]) -> bool:
-        """Verifica que ningún par de nodos conectados comparta el mismo color."""
+        """Verifica que ningún par de nodos conectados comparta el mismo color"""
         for u, v in self.edges:
             if coloring.get(u) == coloring.get(v):
                 return False
         return True
 
     def to_mermaid(self, coloring: dict[str, int]) -> str:
-        """Genera diagrama Mermaid con nodos coloreados según registro."""
+        """Genera diagrama Mermaid con nodos coloreados según registro"""
         lines = ["graph TD"]
         # Definir estilos de clase para cada color
         unique_colors = sorted(list(set(coloring.values())))
@@ -281,12 +275,12 @@ class InterferenceGraph:
 
 
 def analyze_interference_graph(text: str) -> InterferenceGraphResponse:
-    """Función de alto nivel para procesar la lista de adyacencia y generar la coloración óptima."""
+    """Función para procesar la lista de adyacencia y generar la coloración óptima"""
     nodes, edges, errors = parse_adjacency_list(text)
     if not nodes:
         return InterferenceGraphResponse(
             success=False,
-            errors=errors or ["No se encontraron variables ni aristas válidas en la entrada."],
+            errors=errors or ["No se encontraron variables ni aristas válidas en la entrada"],
             nodes=[],
             edges=[],
             chromatic_number=0,
@@ -306,9 +300,9 @@ def analyze_interference_graph(text: str) -> InterferenceGraphResponse:
     is_valid = graph.verify_coloring(coloring)
 
     if not is_valid:
-        errors.append("Error interno: la coloración generada presenta conflictos en variables adyacentes.")
+        errors.append("Error interno: la coloración generada presenta conflictos en variables adyacentes")
 
-    # Agrupar por clases de color (Registros)
+    # Agrupar por clases de color (registros)
     color_to_nodes: dict[int, list[str]] = {}
     for n in nodes:
         cid = coloring.get(n, 1)

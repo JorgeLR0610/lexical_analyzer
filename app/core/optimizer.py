@@ -277,32 +277,32 @@ class IROptimizer:
             if ch_ident:
                 changed = True
 
-            # 2. Subexpresiones Comunes (CSE)
+            # 2. Subexpresiones comunes
             current_quads, ch_cse = self._apply_cse(current_quads)
             if ch_cse:
                 changed = True
 
-            # 3. Propagación de Constantes
+            # 3. Propagación de constantes
             current_quads, ch_prop = self._apply_constant_propagation(current_quads)
             if ch_prop:
                 changed = True
 
-            # 4. Plegado de Constantes (Constant Folding)
+            # 4. Plegado de constantes (constant Folding)
             current_quads, ch_fold = self._apply_constant_folding(current_quads)
             if ch_fold:
                 changed = True
 
-            # 5. Simplificación de Saltos y Condiciones Constantes
+            # 5. Simplificación de saltos y condiciones constantes
             current_quads, ch_branch = self._apply_branch_simplification(current_quads)
             if ch_branch:
                 changed = True
 
-            # 6. Eliminación de Bloques y Código Inalcanzable
+            # 6. Eliminación de bloques y código inalcanzable
             current_quads, ch_unreach = self._apply_unreachable_code_elimination(current_quads)
             if ch_unreach:
                 changed = True
 
-            # 7. Eliminación de Código Muerto
+            # 7. Eliminación de código muerto
             current_quads, ch_dead = self._apply_dead_code_elimination(current_quads)
             if ch_dead:
                 changed = True
@@ -371,7 +371,7 @@ class IROptimizer:
 
         for q in quads:
             if q.op in ('label', 'goto', 'ifFalse', 'ifTrue', 'func_begin', 'func_end'):
-                # Reset local en etiquetas/saltos para seguridad intra-bloque
+                # Reset local en etiquetas/saltos para seguridad entre bloques
                 known_constants.clear()
                 new_quads.append(q)
                 continue
@@ -443,7 +443,7 @@ class IROptimizer:
         new_quads = []
         changed = False
 
-        # Primero mapear si alguna variable antes del salto era constante (ej. t3 = true)
+        # Primero mapear si alguna variable antes del salto era constante (algo como t3 = true)
         const_map = {}
         for q in quads:
             if q.op == '=' and q.arg1 in ('true', 'false'):
@@ -453,7 +453,7 @@ class IROptimizer:
             if q.op == 'ifFalse':
                 cond_val = const_map.get(q.arg1, q.arg1)
                 if cond_val == 'true':
-                    # ifFalse true -> NUNCA salta! Se puede eliminar el salto
+                    # ifFalse true -> nunca salta, se puede eliminar el salto
                     orig_tac = q.to_tac()
                     self.add_transformation(
                         q.block_id,
@@ -465,7 +465,7 @@ class IROptimizer:
                     changed = True
                     continue
                 elif cond_val == 'false':
-                    # ifFalse false -> SIEMPRE salta! Se convierte en goto incondicional
+                    # ifFalse false -> siempre salta, se convierte en goto incondicional
                     orig_tac = q.to_tac()
                     opt_q = Quad('goto', '', '', q.result, block_id=q.block_id)
                     new_quads.append(opt_q)
@@ -548,7 +548,7 @@ class IROptimizer:
 
         has_return = any(q.op == 'return' for q in quads)
 
-        # Regla: Propagación de return directo y eliminación de asignación intermedia: y = x; return y -> return x
+        # Propagación de return directo y eliminación de asignación intermedia: y = x; return y -> return x
         for i in range(len(quads) - 1):
             q_curr = quads[i]
             q_next = quads[i + 1]
@@ -579,12 +579,12 @@ class IROptimizer:
 
             # Si es una asignación o cálculo pero su resultado nunca es leído:
             if q.result and q.result not in used_vars:
-                # Si es una variable de usuario (no temporal) y el programa no tiene return, preservarla
+                # Si es una variable de usuario (no temporal) y el programa no tiene return, mantenerla
                 if not self._is_temporal(q.result) and not has_return:
                     new_quads.append(q)
                     continue
 
-                # Es código muerto!
+                # Es código muerto
                 orig_tac = q.to_tac()
                 self.add_transformation(
                     q.block_id,
@@ -799,7 +799,7 @@ def optimize_code(code: str) -> OptimizationResponse:
     # Convertir quadruples a Quad
     quads_before = [Quad(q.op, q.arg1, q.arg2, q.result) for q in ir_res.quadruples]
 
-    # Paso 2: CFG Original
+    # Paso 2: FG Original
     cfg_before = ControlFlowGraph.from_quads(quads_before)
     mermaid_before = cfg_before.to_mermaid()
     complexity_before = cfg_before.calculate_cyclomatic_complexity()
